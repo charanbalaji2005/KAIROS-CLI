@@ -9,6 +9,7 @@ from typing import Optional
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.styles import Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
@@ -30,6 +31,8 @@ from forge.terminal.renderer import (
     render_banner,
     render_diff,
     render_error,
+    render_separator,
+    render_status_bar,
     render_success,
     render_tool_result,
     render_tool_start,
@@ -47,6 +50,7 @@ SLASH_COMMANDS = [
     "/github",
     "/diff",
     "/model",
+    "/effort",
     "/doctor",
     "/compact",
     "/permissions",
@@ -56,15 +60,26 @@ SLASH_COMMANDS = [
     "/quit",
 ]
 
+PLACEHOLDERS = [
+    'Try "fix lint errors"',
+    'Try "explain this repository"',
+    'Try "run tests and fix failures"',
+    'Try "find where function X is defined"',
+    'Try "add authentication to the app"',
+    'Try "commit and push changes to github"',
+]
+
 
 class TerminalUI:
-    """Interactive command shell for the Kairos AI Engineer."""
+    """Interactive command shell for the Kairos AI Engineer with Claude Code layout."""
 
     def __init__(self, config: ForgeConfig, workspace: Optional[str] = None, session_id: Optional[str] = None):
         self.config = config
         self.workspace = workspace or str(Path.cwd())
         self.session_manager = SessionManager(workspace=self.workspace, session_id=session_id)
         self._spinner: Optional[Status] = None
+        self.effort_level = "high"
+        self.placeholder_idx = 0
 
         # Setup prompt toolkit history & styling
         history_path = get_forge_dir() / "history"
@@ -72,7 +87,22 @@ class TerminalUI:
         self.completer = WordCompleter(SLASH_COMMANDS, ignore_case=True)
         self.pt_style = Style.from_dict({
             "prompt": "#F97316 bold",
+            "auto_on": "#F97316 bold",
+            "auto_off": "#A3A3A3",
+            "toolbar_dim": "#737373",
+            "placeholder": "#525252 italic",
         })
+
+        # Keybindings: Shift+Tab toggles auto mode / manual mode in real time
+        self.kb = KeyBindings()
+
+        @self.kb.add("s-tab")
+        def _toggle_auto_mode(event):
+            self.config.auto_mode = not self.config.auto_mode
+            self.runtime.auto_mode = self.config.auto_mode
+            self.runtime.permissions.set_auto_mode(self.config.auto_mode)
+            save_config(self.config)
+            event.app.invalidate()
 
         # Initialize LLM provider & AgentRuntime
         self.llm = get_provider(self.config)
@@ -84,6 +114,19 @@ class TerminalUI:
             event_callback=self._handle_event,
         )
         self.runtime.permissions.approval_callback = self._interactive_approval
+
+    def _get_bottom_toolbar(self):
+        """Dynamic Claude Code bottom status toolbar."""
+        if self.config.auto_mode:
+            return [
+                ("class:auto_on", "▶▶ auto mode on "),
+                ("class:toolbar_dim", "(shift+tab to cycle) · /help for commands"),
+            ]
+        else:
+            return [
+                ("class:auto_off", "▷ manual mode "),
+                ("class:toolbar_dim", "(shift+tab to cycle) · /help for commands"),
+            ]
 
     def _start_spinner(self, message: str = "Kairos is thinking...") -> None:
         """Starts or updates the mascot thinking spinner."""
@@ -177,15 +220,25 @@ class TerminalUI:
             history=self.prompt_history,
             completer=self.completer,
             style=self.pt_style,
+            key_bindings=self.kb,
+            bottom_toolbar=self._get_bottom_toolbar,
         )
 
         while True:
             try:
+                render_status_bar(self.effort_level)
+                render_separator()
+
+                ph = PLACEHOLDERS[self.placeholder_idx % len(PLACEHOLDERS)]
+                self.placeholder_idx += 1
+
                 prompt_text = [
-                    ("class:prompt", "kairos > "),
+                    ("class:prompt", "❯ "),
                 ]
-                user_input = await asyncio.to_thread(session.prompt, prompt_text)
+                user_input = await asyncio.to_thread(session.prompt, prompt_text, placeholder=ph)
                 user_input = user_input.strip()
+
+                render_separator()
 
                 if not user_input:
                     continue
@@ -249,11 +302,12 @@ class TerminalUI:
             console.print("  /clear        Clear active conversation history")
             console.print("  /git          Show git status summary")
             console.print("  /diff         Show uncommitted git changes")
-            console.print("  /github       Check GitHub CLI status")
+            console.print("  /github       Check GitHub CLI status (or /github login)")
             console.print("  /model        View or change current LLM model")
-            console.print("  /doctor       Check local environment")
+            console.print("  /effort       Toggle reasoning effort level (high/normal)")
+            console.print("  /doctor       Check local environment dependencies")
             console.print("  /compact      Toggle compact header view")
-            console.print("  /auto         Toggle autonomous confirmation mode")
+            console.print("  /auto         Toggle autonomous confirmation mode (or Shift+Tab)")
             console.print("  /sessions     List previous sessions")
             console.print("  /exit         Exit Kairos\n")
 
@@ -293,7 +347,19 @@ class TerminalUI:
             self.runtime.auto_mode = self.config.auto_mode
             self.runtime.permissions.set_auto_mode(self.config.auto_mode)
             save_config(self.config)
-            render_success(f"Auto mode set to: {self.config.auto_mode}")
+            status_text = "on" if self.config.auto_mode else "off"
+            render_success(f"Auto mode {status_text} (Press Shift+Tab anytime to toggle)")
+
+        elif command == "/effort":
+            if arg.lower() in ("low", "medium", "high", "max"):
+                self.effort_level = arg.lower()
+            else:
+                self.effort_level = "normal" if self.effort_level == "high" else "high"
+            render_success(f"Reasoning effort set to: {self.effort_level}")
+
+        elif command == "/doctor":
+            from forge.cli import doctor
+            doctor()
 
         elif command == "/model":
             if arg:

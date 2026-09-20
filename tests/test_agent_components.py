@@ -169,3 +169,40 @@ def test_kairos_robot_spinner():
     with live_spinner("Analyzing test code..."):
         pass
 
+
+def test_claude_code_ui_layout_and_keybindings():
+    """Verify Claude Code header, separator, status bar, and bottom toolbar."""
+    import asyncio
+    from forge.config.schema import ForgeConfig
+    from forge.terminal.renderer import render_separator, render_status_bar
+    from forge.terminal.ui import TerminalUI
+
+    # 1. Separator and status bar render without error
+    render_separator(width=60)
+    render_status_bar(effort="high", width=60)
+    render_status_bar(effort="normal", width=60)
+
+    # 2. TerminalUI bottom toolbar
+    cfg = ForgeConfig(auto_mode=False)
+    ui = TerminalUI(config=cfg, workspace="/test/workspace")
+
+    # Manual mode toolbar
+    toolbar_manual = ui._get_bottom_toolbar()
+    assert any("manual mode" in item[1] for item in toolbar_manual)
+    assert any("shift+tab to cycle" in item[1] for item in toolbar_manual)
+
+    # Auto mode toolbar
+    ui.config.auto_mode = True
+    toolbar_auto = ui._get_bottom_toolbar()
+    assert any("auto mode on" in item[1] for item in toolbar_auto)
+
+    # Verify s-tab keybinding exists
+    assert any(b.keys == ("s-tab",) for b in ui.kb.bindings)
+
+    # Verify /effort command
+    asyncio.run(ui._handle_slash_command("/effort low"))
+    assert ui.effort_level == "low"
+    asyncio.run(ui._handle_slash_command("/effort"))
+    assert ui.effort_level in ("high", "normal")
+
+

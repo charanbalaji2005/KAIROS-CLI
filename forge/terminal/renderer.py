@@ -124,7 +124,75 @@ MASCOT_IDLE = """
 MASCOT_ART = MASCOT_IDLE
 
 
-def _build_banner_panel(
+# Compact 5-line Claude Code header frames
+MASCOT_COMPACT_SLEEP = """
+   ╭●╮   
+ ╭─┴─┴─╮ 
+╭┤─ .. ─├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_WAKE = """
+   ╭●╮   
+ ╭─┴─┴─╮ 
+╭┤• .. •├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_LOOK_LEFT = """
+ ╭●╯     
+╭─┴──╮   
+╭┤● .. ├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_LOOK_RIGHT = """
+     ╰●╮ 
+   ╭──┴─╮
+╭┤ .. ●├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_WINK = """
+   ╭●╮   
+ ╭─┴─┴─╮ 
+╭┤^ >_ -├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_GIGGLE_1 = """
+ * ╭●╯ * 
+╭──┴─╮   
+╭┤> ﹏ <├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_GIGGLE_2 = """
+ * ╰●╮ * 
+   ╭─┴──╮
+╭┤^ ▽ ^├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+MASCOT_COMPACT_IDLE = """
+   ╭●╮   
+ ╭─┴─┴─╮ 
+╭┤▮ >_ ▮├╮
+ ╰─┬─┬─╯ 
+   ▟█▙   
+""".strip("\n")
+
+COLOR_SEPARATOR = "#333333"
+
+
+def _build_claude_header(
     mascot_art: str,
     workspace: str,
     model: str,
@@ -132,37 +200,24 @@ def _build_banner_panel(
     github_connected: bool = False,
     github_user: Optional[str] = None,
     mood_badge: Optional[str] = None,
-) -> Panel:
-    """Builds a rich panel with mascot and session details."""
-    gh_icon = (
-        f"[bold {COLOR_SUCCESS}]● connected[/] as {github_user}"
-        if github_connected
-        else f"[{COLOR_MUTED}]○ disconnected[/]"
-    )
-    badge = f" [bold {COLOR_ORANGE_LIGHT}]{mood_badge}[/]" if mood_badge else ""
-
+) -> Table:
+    """Builds a borderless Claude Code-style header grid with mascot and metadata."""
     grid = Table.grid(padding=(0, 2))
-    grid.add_column(justify="center")
     grid.add_column(justify="left")
+    grid.add_column(justify="left")
+
+    gh_suffix = f" · {github_user}" if (github_connected and github_user) else ""
+    badge = f" [bold {COLOR_ORANGE_LIGHT}]{mood_badge}[/]" if mood_badge else ""
 
     mascot_text = Text(mascot_art, style=COLOR_ORANGE)
     info_lines = (
-        f"[bold {COLOR_ORANGE}]KAIROS AGENT v0.2.0[/]{badge}\n"
-        f"[dim]Autonomous Terminal Engineer (Python Core)[/]\n\n"
-        f"[{COLOR_MUTED}]Model:[/]     [{COLOR_ORANGE}]{model}[/]\n"
-        f"[{COLOR_MUTED}]Workspace:[/] [white]{workspace}[/]\n"
-        f"[{COLOR_MUTED}]Branch:[/]    [cyan]{branch or 'detached'}[/]\n"
-        f"[{COLOR_MUTED}]GitHub:[/]    {gh_icon}"
+        f"[bold white]Kairos Code[/] [dim]v0.2.0[/]{badge}\n"
+        f"[dim]{model}{gh_suffix}[/]\n"
+        f"[dim]{workspace}[/]"
     )
 
     grid.add_row(mascot_text, info_lines)
-
-    return Panel(
-        grid,
-        border_style=COLOR_ORANGE_DARK,
-        title=f"[bold {COLOR_ORANGE}]⟦>_⟧ KAIROS[/]",
-        title_align="left",
-    )
+    return grid
 
 
 def render_banner(
@@ -174,19 +229,16 @@ def render_banner(
     compact: bool = False,
     animate: bool = True,
 ) -> None:
-    """Renders the Kairos startup header banner with mascot animation."""
+    """Renders the borderless Claude Code-style startup header."""
     if compact:
         gh_status = f"[green]● {github_user or 'connected'}[/green]" if github_connected else "[dim]○ offline[/dim]"
         console.print(
-            f"[{COLOR_ORANGE}]⟦>_⟧ KAIROS[/] [bold white]v0.2.0[/] │ "
+            f"[{COLOR_ORANGE}]⟦>_⟧ Kairos Code[/] [dim]v0.2.0[/] │ "
             f"Model: [{COLOR_ORANGE}]{model}[/] │ "
-            f"Branch: [cyan]{branch or 'none'}[/] │ "
             f"GitHub: {gh_status}"
         )
-        console.print(f"[{COLOR_ORANGE_DARK}]{'─' * 64}[/]")
         return
 
-    # Check whether terminal can handle smooth animation
     is_interactive = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
     should_animate = animate and is_interactive and not os.environ.get("PYTEST_CURRENT_TEST")
 
@@ -195,31 +247,46 @@ def render_banner(
         from rich.live import Live
 
         animation_sequence = [
-            (MASCOT_SLEEP, "⟦ zZz ⟧", 0.12),
-            (MASCOT_WAKE, "⟦ •_• ⟧", 0.10),
-            (MASCOT_LOOK_LEFT, "⟦ •_  ⟧", 0.10),
-            (MASCOT_LOOK_RIGHT, "⟦  _• ⟧", 0.10),
-            (MASCOT_WINK, "⟦ ^_- ⟧", 0.10),
-            (MASCOT_GIGGLE_1, "⟦ >_< *giggle* ⟧", 0.11),
-            (MASCOT_GIGGLE_2, "⟦ ^o^ *hehehe* ⟧", 0.12),
+            (MASCOT_COMPACT_SLEEP, "⟦ zZz ⟧", 0.10),
+            (MASCOT_COMPACT_WAKE, "⟦ •_• ⟧", 0.08),
+            (MASCOT_COMPACT_LOOK_LEFT, "⟦ •_  ⟧", 0.08),
+            (MASCOT_COMPACT_LOOK_RIGHT, "⟦  _• ⟧", 0.08),
+            (MASCOT_COMPACT_WINK, "⟦ ^_- ⟧", 0.08),
+            (MASCOT_COMPACT_GIGGLE_1, "⟦ >_< ⟧", 0.10),
+            (MASCOT_COMPACT_GIGGLE_2, "⟦ ^o^ ⟧", 0.10),
         ]
 
         try:
             with Live(
-                _build_banner_panel(MASCOT_SLEEP, workspace, model, branch, github_connected, github_user, "⟦ zZz ⟧"),
+                _build_claude_header(MASCOT_COMPACT_SLEEP, workspace, model, branch, github_connected, github_user, "⟦ zZz ⟧"),
                 console=console,
                 refresh_per_second=20,
                 transient=True,
             ) as live:
                 for frame, mood, dur in animation_sequence:
-                    live.update(_build_banner_panel(frame, workspace, model, branch, github_connected, github_user, mood))
+                    live.update(_build_claude_header(frame, workspace, model, branch, github_connected, github_user, mood))
                     time.sleep(dur)
         except Exception:
             pass
 
-    # Print final permanent banner
-    panel = _build_banner_panel(MASCOT_IDLE, workspace, model, branch, github_connected, github_user)
-    console.print(panel)
+    console.print()
+    header = _build_claude_header(MASCOT_COMPACT_IDLE, workspace, model, branch, github_connected, github_user)
+    console.print(header)
+    console.print()
+
+
+def render_separator(width: int = 78) -> None:
+    """Renders a subtle Claude Code horizontal rule divider."""
+    term_width = min(console.width or 80, width)
+    console.print(f"[{COLOR_SEPARATOR}]{'─' * term_width}[/]")
+
+
+def render_status_bar(effort: str = "high", width: int = 78) -> None:
+    """Renders Claude Code's right-aligned status indicator above prompt."""
+    term_width = min(console.width or 80, width)
+    text = f"● {effort} · /effort"
+    pad = max(0, term_width - len(text) - 1)
+    console.print(f"[dim]{' ' * pad}{text}[/]")
 
 
 def render_mascot_giggle(message: str = "Hehehe! Task complete!") -> None:
