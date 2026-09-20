@@ -36,7 +36,7 @@ class ContextManager:
         pkg_str = ", ".join(info.package_managers) if info.package_managers else "None"
         fw_str = ", ".join(info.frameworks) if info.frameworks else "None"
 
-        prompt = f"""You are Forge, an elite autonomous terminal coding agent (Claude-Code style).
+        prompt = f"""You are Kairos, an elite autonomous terminal coding agent (Claude-Code style).
 You are working directly in repository workspace: {self.workspace}
 Git branch: {branch}
 Languages: {lang_str}

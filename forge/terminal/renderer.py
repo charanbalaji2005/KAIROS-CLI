@@ -50,11 +50,11 @@ def render_banner(
     github_user: Optional[str] = None,
     compact: bool = False,
 ) -> None:
-    """Renders the Forge startup header banner."""
+    """Renders the Kairos startup header banner."""
     if compact:
         gh_status = f"[green]● {github_user or 'connected'}[/green]" if github_connected else "[dim]○ offline[/dim]"
         console.print(
-            f"[{COLOR_ORANGE}]⟦>_⟧ FORGE[/] [bold white]v0.2.0[/] │ "
+            f"[{COLOR_ORANGE}]⟦>_⟧ KAIROS[/] [bold white]v0.2.0[/] │ "
             f"Model: [{COLOR_ORANGE}]{model}[/] │ "
             f"Branch: [cyan]{branch or 'none'}[/] │ "
             f"GitHub: {gh_status}"
@@ -71,7 +71,7 @@ def render_banner(
 
     mascot_text = Text(MASCOT_ART, style=COLOR_ORANGE)
     info_lines = (
-        f"[bold {COLOR_ORANGE}]FORGE AGENT v0.2.0[/]\n"
+        f"[bold {COLOR_ORANGE}]KAIROS AGENT v0.2.0[/]\n"
         f"[dim]Autonomous Terminal Engineer (Python Core)[/]\n\n"
         f"[{COLOR_MUTED}]Model:[/]     [{COLOR_ORANGE}]{model}[/]\n"
         f"[{COLOR_MUTED}]Workspace:[/] [white]{workspace}[/]\n"
@@ -84,7 +84,7 @@ def render_banner(
     panel = Panel(
         grid,
         border_style=COLOR_ORANGE_DARK,
-        title=f"[bold {COLOR_ORANGE}]⟦>_⟧ FORGE[/]",
+        title=f"[bold {COLOR_ORANGE}]⟦>_⟧ KAIROS[/]",
         title_align="left",
     )
     console.print(panel)

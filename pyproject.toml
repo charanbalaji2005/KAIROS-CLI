@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "forge-agent"
+name = "kairos-cli"
 version = "0.2.0"
-description = "Forge - Autonomous AI Terminal Coding Agent"
+description = "Kairos - Autonomous AI Terminal Coding Agent"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -35,8 +35,9 @@ dev = [
 ]
 
 [project.scripts]
-forge = "forge.forge:cli_main"
+kairos = "forge.cli:cli_main"
+forge = "forge.cli:cli_main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["forge*"]
+include = ["forge*", "kairos*"]

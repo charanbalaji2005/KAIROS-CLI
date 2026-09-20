@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Forge Agent Installer (Python)
-# Usage: bash install.sh or curl -fsSL https://get.forge.dev/install.sh | bash
+# Kairos Agent Installer (Python)
+# Usage: bash install.sh or curl -fsSL https://raw.githubusercontent.com/charanbalaji2005/KAIROS-CLI/main/install.sh | bash
 
 set -euo pipefail
 
-FORGE_VERSION="0.2.0"
-FORGE_HOME="${HOME}/.forge"
-INSTALL_DIR="${FORGE_HOME}/bin"
-VENV_DIR="${FORGE_HOME}/venv"
-APP_DIR="${FORGE_HOME}/app"
-BINARY_NAME="forge"
+KAIROS_VERSION="0.2.0"
+KAIROS_HOME="${HOME}/.kairos"
+INSTALL_DIR="${KAIROS_HOME}/bin"
+VENV_DIR="${KAIROS_HOME}/venv"
+APP_DIR="${KAIROS_HOME}/app"
+BINARY_NAME="kairos"
+ALT_BINARY="forge"
 
 # Colors
 ORANGE='\033[38;2;249;115;22m'
@@ -20,9 +21,9 @@ RESET='\033[0m'
 
 banner() {
   echo -e ""
-  echo -e "${ORANGE}  ⟦>_⟧  FORGE AGENT${RESET}"
+  echo -e "${ORANGE}  ⟦>_⟧  KAIROS AGENT${RESET}"
   echo -e "${MUTED}  Autonomous Terminal Engineer (Python Core)${RESET}"
-  echo -e "${MUTED}  Installing v${FORGE_VERSION}...${RESET}"
+  echo -e "${MUTED}  Installing v${KAIROS_VERSION}...${RESET}"
   echo -e ""
 }
 
@@ -70,13 +71,12 @@ check_deps() {
     echo -e "${GREEN}✓${RESET} Ollama"
   else
     echo -e "${MUTED}◆ Ollama not found — local models unavailable${RESET}"
-    echo -e "${MUTED}  Install: curl -fsSL https://ollama.com/install.sh | sh${RESET}"
   fi
 }
 
-install_forge() {
+install_kairos() {
   echo -e ""
-  echo -e "${MUTED}Setting up Forge environment in ${FORGE_HOME}...${RESET}"
+  echo -e "${MUTED}Setting up Kairos environment in ${KAIROS_HOME}...${RESET}"
   mkdir -p "$INSTALL_DIR"
 
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -93,30 +93,35 @@ install_forge() {
   # Ensure pip is up to date
   "$VENV_PIP" install --upgrade pip --quiet
 
-  # Install Forge
+  # Install Kairos
   if [ -f "${SCRIPT_DIR}/pyproject.toml" ]; then
     echo -e "${MUTED}Installing from local source (${SCRIPT_DIR})...${RESET}"
     "$VENV_PIP" install -e "${SCRIPT_DIR}" --quiet
   else
-    echo -e "${MUTED}Cloning Forge repository...${RESET}"
+    echo -e "${MUTED}Cloning Kairos repository...${RESET}"
     rm -rf "$APP_DIR"
-    git clone --depth 1 https://github.com/charanbalaji2005/forge-agent.git "$APP_DIR" --quiet
+    git clone --depth 1 https://github.com/charanbalaji2005/KAIROS-CLI.git "$APP_DIR" --quiet
     "$VENV_PIP" install -e "$APP_DIR" --quiet
   fi
 
-  # Create launcher binary script
+  # Create launcher binary script for kairos
   cat > "${INSTALL_DIR}/${BINARY_NAME}" << EOF
 #!/usr/bin/env bash
 exec "${VENV_PYTHON}" -m forge "\$@"
 EOF
   chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
 
-  echo -e "${GREEN}✓${RESET} Forge binary installed at ${INSTALL_DIR}/${BINARY_NAME}"
+  # Create symlink for forge alias
+  ln -sf "${INSTALL_DIR}/${BINARY_NAME}" "${INSTALL_DIR}/${ALT_BINARY}"
+
+  echo -e "${GREEN}✓${RESET} Kairos binary installed at ${INSTALL_DIR}/${BINARY_NAME}"
+  echo -e "${GREEN}✓${RESET} Forge alias created at ${INSTALL_DIR}/${ALT_BINARY}"
 
   # Symlink to /usr/local/bin if writable
   if [ -w "/usr/local/bin" ]; then
     ln -sf "${INSTALL_DIR}/${BINARY_NAME}" "/usr/local/bin/${BINARY_NAME}"
-    echo -e "${GREEN}✓${RESET} Linked to /usr/local/bin/${BINARY_NAME}"
+    ln -sf "${INSTALL_DIR}/${BINARY_NAME}" "/usr/local/bin/${ALT_BINARY}"
+    echo -e "${GREEN}✓${RESET} Linked kairos & forge to /usr/local/bin"
   fi
 
   # Add to PATH (prepend so it takes precedence over system packages)
@@ -128,7 +133,8 @@ EOF
   fi
 
   if [ -n "$SHELL_RC" ]; then
-    # Clean up any previous .forge/bin lines
+    # Clean up previous kairos/forge bin lines
+    sed -i '/\.kairos\/bin/d' "$SHELL_RC"
     sed -i '/\.forge\/bin/d' "$SHELL_RC"
     echo "export PATH=\"${INSTALL_DIR}:\$PATH\"" >> "$SHELL_RC"
     echo -e "${GREEN}✓${RESET} Added to PATH in ${SHELL_RC}"
@@ -138,13 +144,17 @@ EOF
 setup_config() {
   echo -e ""
   echo -e "${MUTED}Setting up configuration...${RESET}"
-  mkdir -p "${HOME}/.forge"
+  mkdir -p "${KAIROS_HOME}"
 
-  if [ ! -f "${HOME}/.forge/config.json" ]; then
-    cat > "${HOME}/.forge/config.json" << 'EOF'
+  # If previous ~/.forge/config.json exists and ~/.kairos/config.json does not, copy it over
+  if [ -f "${HOME}/.forge/config.json" ] && [ ! -f "${KAIROS_HOME}/config.json" ]; then
+    cp "${HOME}/.forge/config.json" "${KAIROS_HOME}/config.json"
+    echo -e "${GREEN}✓${RESET} Migrated existing config from ~/.forge/ to ~/.kairos/config.json"
+  elif [ ! -f "${KAIROS_HOME}/config.json" ]; then
+    cat > "${KAIROS_HOME}/config.json" << 'EOF'
 {
-  "model": "qwen-coder",
-  "provider": "ollama",
+  "model": "qwen/qwen3.8-27b",
+  "provider": "groq",
   "auto_mode": false,
   "ollama_url": "http://localhost:11434",
   "max_tokens": 4096,
@@ -154,25 +164,25 @@ setup_config() {
   "max_iterations": 30
 }
 EOF
-    echo -e "${GREEN}✓${RESET} Config created at ~/.forge/config.json"
+    echo -e "${GREEN}✓${RESET} Config created at ~/.kairos/config.json"
   fi
 }
 
 suggest_model() {
   echo -e ""
-  echo -e "${MUTED}To install the recommended model:${RESET}"
-  echo -e "  ${ORANGE}ollama pull qwen2.5-coder:3b${RESET}"
+  echo -e "${MUTED}To start Kairos:${RESET}"
+  echo -e "  ${ORANGE}kairos${RESET}"
   echo -e ""
-  echo -e "${MUTED}To start Forge:${RESET}"
-  echo -e "  ${ORANGE}forge${RESET}"
+  echo -e "${MUTED}Or run doctor check:${RESET}"
+  echo -e "  ${ORANGE}kairos doctor${RESET}"
   echo -e ""
 }
 
 banner
 check_deps
-install_forge
+install_kairos
 setup_config
 suggest_model
 
-echo -e "${GREEN}✓ Forge installed successfully!${RESET}"
+echo -e "${GREEN}✓ Kairos installed successfully!${RESET}"
 echo -e ""

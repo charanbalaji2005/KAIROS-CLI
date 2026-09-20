@@ -9,15 +9,20 @@ from forge.config.schema import ForgeConfig
 
 
 def get_forge_dir() -> Path:
-    """Returns ~/.forge directory, ensuring it exists."""
+    """Returns ~/.kairos (or ~/.forge for backward compatibility) directory, ensuring it exists."""
     home = Path.home()
+    kairos_dir = home / ".kairos"
     forge_dir = home / ".forge"
-    forge_dir.mkdir(parents=True, exist_ok=True)
-    return forge_dir
+    if kairos_dir.exists():
+        return kairos_dir
+    if forge_dir.exists() and (forge_dir / "config.json").exists():
+        return forge_dir
+    kairos_dir.mkdir(parents=True, exist_ok=True)
+    return kairos_dir
 
 
 def get_config_path() -> Path:
-    """Returns the full path to ~/.forge/config.json."""
+    """Returns the full path to config.json."""
     return get_forge_dir() / "config.json"
 
 
@@ -35,13 +40,14 @@ def load_config(config_file: Optional[Path] = None) -> ForgeConfig:
 
     config = ForgeConfig(**cfg_data)
 
-    # Environment variable overrides
-    if os.getenv("FORGE_MODEL"):
-        config.model = os.getenv("FORGE_MODEL")
-    if os.getenv("FORGE_PROVIDER"):
-        config.provider = os.getenv("FORGE_PROVIDER")
-    if os.getenv("FORGE_AUTO"):
-        config.auto_mode = os.getenv("FORGE_AUTO", "").lower() in ("1", "true", "yes")
+    # Environment variable overrides (supporting both KAIROS_* and FORGE_*)
+    if os.getenv("KAIROS_MODEL") or os.getenv("FORGE_MODEL"):
+        config.model = os.getenv("KAIROS_MODEL") or os.getenv("FORGE_MODEL")
+    if os.getenv("KAIROS_PROVIDER") or os.getenv("FORGE_PROVIDER"):
+        config.provider = os.getenv("KAIROS_PROVIDER") or os.getenv("FORGE_PROVIDER")
+    if os.getenv("KAIROS_AUTO") or os.getenv("FORGE_AUTO"):
+        val = os.getenv("KAIROS_AUTO") or os.getenv("FORGE_AUTO", "")
+        config.auto_mode = val.lower() in ("1", "true", "yes")
     if os.getenv("ANTHROPIC_API_KEY"):
         config.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
     if os.getenv("OPENAI_API_KEY"):

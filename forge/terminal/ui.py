@@ -63,7 +63,7 @@ async def interactive_approval_callback(tool_name: str, arguments: dict, warning
         console.print(f"[{COLOR_WARNING}]⚠ {warning}[/]")
 
     cmd_desc = arguments.get("command") or arguments.get("path") or arguments.get("message") or ""
-    console.print(f"[{COLOR_ORANGE}]Forge wants to run:[/] [bold white]{tool_name}[/] [dim]{cmd_desc}[/dim]")
+    console.print(f"[{COLOR_ORANGE}]Kairos wants to run:[/] [bold white]{tool_name}[/] [dim]{cmd_desc}[/dim]")
 
     choice = Prompt.ask(
         "Allow execution?",
@@ -79,7 +79,7 @@ async def interactive_approval_callback(tool_name: str, arguments: dict, warning
 
 
 class TerminalUI:
-    """Interactive command shell for the Forge AI Engineer."""
+    """Interactive command shell for the Kairos AI Engineer."""
 
     def __init__(self, config: ForgeConfig, workspace: Optional[str] = None, session_id: Optional[str] = None):
         self.config = config
@@ -139,7 +139,7 @@ class TerminalUI:
         while True:
             try:
                 prompt_text = [
-                    ("class:prompt", "forge > "),
+                    ("class:prompt", "kairos > "),
                 ]
                 user_input = await asyncio.to_thread(session.prompt, prompt_text)
                 user_input = user_input.strip()
@@ -155,7 +155,7 @@ class TerminalUI:
                     continue
 
                 # Run Agent task
-                with live_spinner("Forge is working..."):
+                with live_spinner("Kairos is working..."):
                     response = await self.runtime.run(user_input)
 
                 # Persist session
@@ -163,11 +163,11 @@ class TerminalUI:
 
                 # Render final markdown response
                 console.print()
-                console.print(f"[{COLOR_ORANGE}]Forge:[/] {response}")
+                console.print(f"[{COLOR_ORANGE}]Kairos:[/] {response}")
                 console.print()
 
             except (KeyboardInterrupt, EOFError):
-                console.print(f"\n[{COLOR_MUTED}]Session saved. Exiting Forge.[/]")
+                console.print(f"\n[{COLOR_MUTED}]Session saved. Exiting Kairos.[/]")
                 break
             except Exception as e:
                 render_error(str(e))
@@ -193,7 +193,7 @@ class TerminalUI:
             console.print("  /compact      Toggle compact header view")
             console.print("  /auto         Toggle autonomous confirmation mode")
             console.print("  /sessions     List previous sessions")
-            console.print("  /exit         Exit Forge\n")
+            console.print("  /exit         Exit Kairos\n")
 
         elif command == "/clear":
             self.runtime.messages.clear()
@@ -244,6 +244,6 @@ class TerminalUI:
             console.print(f"\n[bold {COLOR_ORANGE}]Recent Sessions:[/]")
             for s in sessions[:5]:
                 console.print(f"  • [bold white]{s['session_id']}[/] ({s['message_count']} messages, {s['workspace']})")
-            console.print("Resume with: python forge.py --resume <session_id>\n")
+            console.print("Resume with: kairos --resume <session_id> (or python kairos.py --resume <session_id>)\n")
 
         return None

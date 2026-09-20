@@ -34,7 +34,7 @@ from forge.tools.git import git_status
 from forge.tools.github import gh_status
 
 app = typer.Typer(
-    help="Forge - Autonomous Terminal Coding Agent (Claude-Code Architecture in Python)",
+    help="Kairos - Autonomous Terminal Coding Agent (Claude-Code Architecture in Python)",
     invoke_without_command=True,
 )
 console = Console(legacy_windows=False)
@@ -44,12 +44,12 @@ console = Console(legacy_windows=False)
 def main(
     ctx: typer.Context,
     workspace: Optional[str] = typer.Option(None, "--workspace", "-w", help="Workspace path"),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model override (e.g. qwen-coder, claude, gpt-4o)"),
-    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Provider override (ollama, anthropic, openai, gemini)"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model override (e.g. qwen/qwen3.8-27b, claude, gpt-4o)"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Provider override (groq, ollama, anthropic, openai, gemini)"),
     auto: bool = typer.Option(False, "--auto", "-a", help="Run without confirmation prompts"),
     resume: Optional[str] = typer.Option(None, "--resume", "-r", help="Resume a previous session by ID"),
 ):
-    """Start interactive Forge coding agent session if no subcommand is passed."""
+    """Start interactive Kairos coding agent session if no subcommand is passed."""
     if ctx.invoked_subcommand is None:
         cfg = load_config()
         if model:
@@ -68,7 +68,7 @@ def main(
 def run_doctor():
     """Check environment dependencies (Git, gh, Ollama, API keys)."""
     console.print(f"\n[bold {COLOR_ORANGE}]╔══════════════════════════════════════════════════════════╗[/]")
-    console.print(f"[bold {COLOR_ORANGE}]║              FORGE DOCTOR v0.2.0 (Python)                ║[/]")
+    console.print(f"[bold {COLOR_ORANGE}]║              KAIROS DOCTOR v0.2.0 (Python)               ║[/]")
     console.print(f"[bold {COLOR_ORANGE}]╚══════════════════════════════════════════════════════════╝[/]\n")
 
     table = Table(show_header=True, header_style=f"bold {COLOR_ORANGE}")
@@ -123,7 +123,7 @@ def run_doctor():
         except Exception:
             table.add_row("Groq", f"[{COLOR_WARNING}]◆[/]", "Key configured, network check failed")
     else:
-        table.add_row("Groq", f"[{COLOR_MUTED}]○[/]", "Not configured (set with 'forge config groq_api_key <key>')")
+        table.add_row("Groq", f"[{COLOR_MUTED}]○[/]", "Not configured (set with 'kairos config groq_api_key <key>')")
 
     api_status = []
     if cfg.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"):
@@ -137,7 +137,7 @@ def run_doctor():
         table.add_row("Other Cloud APIs", f"[{COLOR_SUCCESS}]✓[/]", f"Configured: {', '.join(api_status)}")
 
     console.print(table)
-    console.print(f"\n[{COLOR_MUTED}]Run [bold {COLOR_ORANGE}]python forge.py[/] to launch Forge.[/]\n")
+    console.print(f"\n[{COLOR_MUTED}]Run [bold {COLOR_ORANGE}]kairos[/] (or [bold {COLOR_ORANGE}]python kairos.py[/]) to launch Kairos.[/]\n")
 
 
 @app.command("status")
@@ -147,7 +147,7 @@ def run_status():
     g_stat = asyncio.run(git_status())
     gh = asyncio.run(gh_status())
 
-    console.print(f"\n[bold {COLOR_ORANGE}]FORGE STATUS[/]\n")
+    console.print(f"\n[bold {COLOR_ORANGE}]KAIROS STATUS[/]\n")
     console.print(f"  Provider:  [{COLOR_ORANGE}]{cfg.provider}[/]")
     console.print(f"  Model:     [{COLOR_ORANGE}]{cfg.model}[/]")
     console.print(f"  Workspace: [white]{Path.cwd()}[/]")
@@ -167,7 +167,7 @@ def run_model(
 ):
     """Manage active and available models across Groq, Ollama, and Cloud."""
     if action == "list":
-        console.print(f"\n[bold {COLOR_ORANGE}]FORGE MODELS[/]\n")
+        console.print(f"\n[bold {COLOR_ORANGE}]KAIROS MODELS[/]\n")
         console.print(f"[{COLOR_ORANGE}]Groq LPUs (Ultra-Fast):[/]")
         console.print("  ● qwen/qwen3.8-27b             Qwen 27B [green](active default)[/]")
         console.print("  ○ openai/gpt-oss-120b          OpenAI GPT-OSS 120B")
@@ -186,8 +186,8 @@ def run_model(
         console.print("  ○ claude-sonnet                Anthropic Claude 3.5 Sonnet")
         console.print("  ○ gpt-4o                       OpenAI GPT-4o")
         console.print("  ○ gemini-flash                 Google Gemini 2.5 Flash\n")
-        console.print("Set Groq model: [bold white]forge model set qwen/qwen3.8-27b[/]")
-        console.print("Switch provider: [bold white]forge config provider groq[/]\n")
+        console.print("Set Groq model: [bold white]kairos model set qwen/qwen3.8-27b[/]")
+        console.print("Switch provider: [bold white]kairos config provider groq[/]\n")
     elif action == "set" and name:
         cfg = load_config()
         # Auto-switch provider if user selects a Groq model
@@ -213,7 +213,7 @@ def run_config(
     key: Optional[str] = typer.Argument(None, help="Config key"),
     value: Optional[str] = typer.Argument(None, help="Config value"),
 ):
-    """Inspect or update ~/.forge/config.json."""
+    """Inspect or update configuration."""
     if key and value:
         set_config_value(key, value)
         render_success(f"Set {key} = {value}")
@@ -223,7 +223,7 @@ def run_config(
         console.print(f"{key}: {val}")
     else:
         cfg = load_config()
-        console.print(f"\n[bold {COLOR_ORANGE}]FORGE CONFIG[/]")
+        console.print(f"\n[bold {COLOR_ORANGE}]KAIROS CONFIG[/]")
         console.print(f"Path: {get_config_path()}\n")
         console.print(cfg.model_dump_json(indent=2))
         console.print()
@@ -231,8 +231,8 @@ def run_config(
 
 @app.command("version")
 def run_version():
-    """Print Forge version."""
-    console.print(f"\n[bold {COLOR_ORANGE}]Forge Agent[/] v0.2.0 (Claude-Code Python Architecture)\n")
+    """Print Kairos version."""
+    console.print(f"\n[bold {COLOR_ORANGE}]Kairos Agent[/] v0.2.0 (Claude-Code Architecture)\n")
 
 
 def cli_main():

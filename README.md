@@ -1,37 +1,38 @@
 <p align="center">
-  <img src="assets/mascot.png" alt="Forge Mascot" width="180" />
+  <img src="assets/mascot.png" alt="Kairos Mascot" width="180" />
 </p>
 
-# ⟦>_⟧ FORGE AGENT
+# ⟦>_⟧ KAIROS AGENT
 
-**Autonomous Terminal Engineer (Python Core)**
+**Autonomous Terminal Engineer (Claude-Code Architecture in Python)**
 
-Forge is an AI-powered terminal coding agent — capable of understanding repositories, editing code, running tests, committing, and pushing to GitHub autonomously.
+Kairos is an AI-powered terminal coding agent — capable of understanding repositories, editing code with precision, running tests, committing, and pushing to GitHub autonomously.
 
 ```
-      ⟦>_⟧  FORGE AGENT v0.1.0
+      ⟦>_⟧  KAIROS AGENT v0.2.0
             Autonomous Terminal Engineer
 
-            Model: qwen-coder (Qwen2.5-Coder 3B)
+            Model: qwen/qwen3.8-27b (Groq LPUs)
             Workspace: ~/projects/my-app
-            Branch: feature/new-auth
+            Branch: main
             GitHub: ● connected as charanbalaji2005
 
  ──────────────────────────────────────────────────────────
 
- forge > build the authentication system and push to GitHub
+ kairos > build the authentication system and push to GitHub
 ```
 
 ---
 
 ## Features
 
-- **Full terminal UI** — orange-on-black Forge aesthetic, compact header with live mascot
+- **Full terminal UI** — orange-on-black Kairos aesthetic, compact header with live mascot
 - **Autonomous agent** — plans, reads, edits, tests, commits, pushes
-- **Multi-model support** — Qwen Coder 3B (default), DeepSeek-Coder 1.3B, Claude, GPT, Gemini
+- **Groq LPU Acceleration** — lightning fast inference with Qwen 27B, GPT-OSS 120B, Compound
+- **Multi-model & Cloud support** — Groq, Ollama (local), Anthropic Claude, OpenAI, Gemini
 - **GitHub CLI integration** — push, PR, CI status via `gh` (no token stored)
 - **Slash commands** — `/help /clear /git /github /diff /model /doctor /exit`
-- **Approval dialogs** — dangerous ops require `[Y]/[N]` confirmation
+- **Approval dialogs** — dangerous ops require `[y]/[n]` confirmation
 - **Auto mode** — skip confirmations for fully autonomous workflows
 - **History navigation** — ↑/↓ arrows through command history
 - **Tab autocomplete** — slash command picker
@@ -46,32 +47,29 @@ Forge is an AI-powered terminal coding agent — capable of understanding reposi
 # Python 3.10+
 python --version
 
-# Install dependencies
-pip install -r requirements.txt
-
-# (Optional) Install Ollama for local AI
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen2.5-coder:3b
-
 # (Optional) Install GitHub CLI for PRs and CI checks
 gh auth login
 ```
 
-### Run
+### Installation
 
 ```bash
-git clone https://github.com/charanbalaji2005/forge-agent
-cd forge-agent
+git clone https://github.com/charanbalaji2005/KAIROS-CLI.git
+cd KAIROS-CLI
 pip install -r requirements.txt
-
-# Start Forge
-python forge.py
+pip install -e .
 ```
 
-Or install CLI to your environment:
+### Start Kairos
 
 ```bash
-pip install -e .
+# Direct launcher command
+kairos
+
+# Or via Python script
+python kairos.py
+
+# (Alias 'forge' also supported)
 forge
 ```
 
@@ -79,25 +77,25 @@ forge
 
 ## Models
 
-| Model | Params | Best For | Backend |
-|-------|--------|----------|---------|
-| `qwen-coder` | 3B | Code generation, editing | Ollama |
-| `qwen-chat` | 3B | General reasoning | Ollama |
-| `qwen-think` | 3B | Step-by-step planning | Ollama |
-| `deepseek-coder` | 1.3B | Lightweight code tasks | Ollama |
-| `phi3-mini` | 3.8B | General purpose | Ollama |
-| `claude-sonnet` | — | Cloud: best quality | Anthropic API |
-| `gpt-4o` | — | Cloud: OpenAI | OpenAI API |
+Kairos supports lightning-fast cloud inference via Groq LPUs, local models via Ollama, and frontier cloud providers:
+
+| Model | Provider | Best For | Speed |
+|-------|----------|----------|-------|
+| `qwen/qwen3.8-27b` | Groq *(Default)* | Code generation, reasoning | Ultra Fast (LPUs) |
+| `openai/gpt-oss-120b` | Groq | Deep architectural reasoning | Very Fast |
+| `groq/compound` | Groq | Multi-step agentic workflows | Ultra Fast |
+| `llama-3.3-70b-versatile` | Groq | General coding & refactoring | Ultra Fast |
+| `qwen-coder` | Ollama (Local) | Local private coding | Local hardware |
+| `claude-3-5-sonnet` | Anthropic | Frontier code synthesis | Cloud API |
+| `gpt-4o` | OpenAI | Frontier reasoning | Cloud API |
 
 ```bash
-# Install local model
-forge model install qwen-coder
+# Switch models
+kairos model set qwen/qwen3.8-27b
+kairos model set openai/gpt-oss-120b
 
-# Switch model
-forge model set deepseek-coder
-
-# List models
-forge model list
+# List available models
+kairos model list
 ```
 
 ---
@@ -106,27 +104,29 @@ forge model list
 
 | Command | Action |
 |---------|--------|
-| `forge` | Start interactive session |
-| `forge doctor` | Check environment |
-| `forge model list` | List available models |
-| `forge model install qwen-coder` | Install local model |
-| `forge status` | Show current status |
-| `forge config` | View configuration |
-| `forge config model qwen-coder` | Set config value |
+| `kairos` | Start interactive session |
+| `kairos doctor` | Check environment, API keys, Git & GitHub CLI |
+| `kairos model list` | List available models |
+| `kairos model set <name>` | Set active LLM model |
+| `kairos status` | Show current status |
+| `kairos config` | View configuration |
+| `kairos config <key> <val>` | Set config value |
+| `kairos version` | Print version |
 
 ### In-session slash commands
 
 ```
 /help         Show all commands
-/clear        Clear conversation
+/clear        Clear conversation history
 /git          Git status summary
 /github       GitHub connection status
-/diff         Show current diff
+/diff         Show uncommitted diff
 /model        Current/available models
 /doctor       Environment check
 /compact      Toggle compact header
-/permissions  Show permission settings
-/exit         Exit Forge
+/auto         Toggle autonomous confirmation mode
+/sessions     List previous sessions
+/exit         Exit Kairos
 ```
 
 ---
@@ -134,97 +134,103 @@ forge model list
 ## Usage Examples
 
 ```
-forge > build a REST API for user authentication with JWT
+kairos > build a REST API for user authentication with JWT
 
-forge > add tests for the auth module
+kairos > add tests for the auth module and run them
 
-forge > commit these changes with a descriptive message and push
+kairos > commit these changes with a descriptive message and push
 
-forge > create a pull request with the changes
+kairos > create a pull request with the changes
 
-forge > what's the current CI status?
+kairos > what's the current CI status?
 
-forge > read src/auth/login.ts and optimize the query
+kairos > read src/auth/login.py and optimize the database query
 ```
 
 ---
 
 ## Configuration
 
-Config is stored at `~/.forge/config.json`:
+Config is stored at `~/.kairos/config.json`:
 
 ```json
 {
-  "model": "qwen-coder",
-  "provider": "ollama",
+  "model": "qwen/qwen3.8-27b",
+  "provider": "groq",
   "auto_mode": false,
   "ollama_url": "http://localhost:11434",
   "max_tokens": 4096,
-  "temperature": 0.1
+  "temperature": 0.1,
+  "theme": "dark",
+  "compact_mode": false,
+  "max_iterations": 30
 }
 ```
 
 Set via CLI:
 
 ```bash
-forge config model qwen-coder
-forge config provider anthropic
-forge config auto_mode true
+kairos config model qwen/qwen3.8-27b
+kairos config provider groq
+kairos config auto_mode true
 ```
 
-Or set API keys for cloud models:
+Set API keys:
 
 ```bash
-forge config anthropic_api_key sk-ant-...
-forge config openai_api_key sk-...
+kairos config groq_api_key gsk_...
+kairos config anthropic_api_key sk-ant-...
+kairos config openai_api_key sk-...
 ```
 
 ---
 
 ## Architecture
 
-```
-forge/
-src/
-  main.rs              CLI entry point + argument parsing
+Kairos follows a modular Claude-Code architecture built in Python:
 
-  config/              Configuration management
-    mod.rs
-
-  cli/                 Non-interactive commands
-    commands.rs        doctor, model, status, version, config
-
-  ui/                  Terminal UI (Ratatui)
-    app.rs             Main TUI loop, event handling, rendering
-    theme.rs           Color constants (orange/black palette)
-    mascot.rs          ⟦>_⟧ ASCII mascot component
-    widgets.rs         Reusable widget helpers
-
-  agent/               AI agent runtime
-    runtime.rs         Main agent loop, LLM ↔ tools bridge
-    state.rs           AgentState enum, events, message types
-    planner.rs         Plan formatting utilities
-
-  llm/                 LLM provider abstraction
-    provider.rs        Trait + factory function
-    ollama.rs          Ollama (local Qwen/Llama/Phi)
-    anthropic.rs       Anthropic Claude API
-    openai.rs          OpenAI GPT API
-
-  tools/               Tool implementations
-    mod.rs             ToolRegistry (filesystem, shell, git, github)
-
-  github/              GitHub CLI integration
-    mod.rs             GitHubClient — wraps `gh` CLI commands
-
-  security/            Permission system
-    mod.rs             Approval logic, dangerous command detection
-
-  memory/              Session state
-    mod.rs             SessionMemory
-
-  indexer/             Repository scanner
-    mod.rs             File tree indexing
+```text
+kairos/
+├── kairos.py                  # Direct CLI entry point
+├── forge.py                   # Backward-compatible CLI entry point
+├── install.sh                 # Single-line curl installer
+├── pyproject.toml             # Package metadata & script entry points
+│
+├── forge/
+│   ├── cli.py                 # Typer subcommands (doctor, status, model, config)
+│   ├── agent/
+│   │   ├── runtime.py         # Autonomous agent execution loop
+│   │   ├── context.py         # Dynamic system prompt & repo intelligence
+│   │   ├── planner.py         # Task planning & step tracking
+│   │   ├── memory.py          # Session memory & scratchpad
+│   │   ├── compaction.py      # Context window compression
+│   │   └── state.py           # Event and state types
+│   ├── llm/
+│   │   ├── groq.py            # Groq LPU provider
+│   │   ├── anthropic.py       # Anthropic Claude provider
+│   │   ├── openai.py          # OpenAI GPT provider
+│   │   ├── ollama.py          # Ollama local provider
+│   │   └── gemini.py          # Google Gemini provider
+│   ├── terminal/
+│   │   ├── ui.py              # Interactive prompt-toolkit terminal shell
+│   │   ├── renderer.py        # Rich styling, orange theme & ASCII mascot
+│   │   └── streaming.py       # Live spinner & output streaming
+│   ├── tools/
+│   │   ├── filesystem.py      # Safe read/edit/write tools
+│   │   ├── shell.py           # Sandboxed command execution
+│   │   ├── git.py             # Git status, diff, commit, push
+│   │   ├── github.py          # GitHub CLI client (PR, CI)
+│   │   └── search.py          # Ripgrep & file pattern search
+│   ├── permissions/
+│   │   ├── policy.py          # Danger rating & approval policies
+│   │   └── manager.py         # Interactive prompt / auto-mode manager
+│   ├── repository/
+│   │   └── detector.py        # Framework, language & test-runner detector
+│   ├── sessions/
+│   │   └── storage.py         # Session persistence & resume
+│   └── config/
+│       ├── schema.py          # Pydantic configuration schema
+│       └── loader.py          # Config loader & env var parser
 ```
 
 ---
@@ -232,35 +238,29 @@ src/
 ## Permission Model
 
 | Operation | Requires Approval | Auto Mode |
-|-----------|------------------|-----------|
-| Read files | Never | Never |
-| Write files | Never | Never |
-| Shell exec | Never | Never |
-| Git commit | Never | Never |
-| **git push** | **Yes** | Skip |
-| **GitHub PR** | **Yes** | Skip |
-| **Delete files** | **Yes** | Skip |
+|-----------|-------------------|-----------|
+| Read files | Never | Auto |
+| Edit files | Never | Auto |
+| Shell exec | Never | Auto |
+| Git commit | Never | Auto |
+| **git push** | **Yes** | Auto |
+| **GitHub PR** | **Yes** | Auto |
+| **Delete files** | **Yes** | Auto |
 
-Enable auto mode: `forge --auto` or `forge config auto_mode true`
+Enable auto mode: `kairos --auto` or `kairos config auto_mode true`
 
 ---
 
-## Installation Scripts
+## One-Line Installer
 
-### Linux / macOS
+### Linux & WSL
 
 ```bash
-curl -fsSL https://get.forge.dev/install.sh | bash
-```
-
-### Windows PowerShell
-
-```powershell
-irm https://get.forge.dev/install.ps1 | iex
+curl -fsSL https://raw.githubusercontent.com/charanbalaji2005/KAIROS-CLI/main/install.sh | bash
 ```
 
 ---
 
 ## License
 
-MIT — Forge Agent by Charan Balaji
+MIT — Kairos Agent by Charan Balaji
