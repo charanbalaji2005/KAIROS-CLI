@@ -45,6 +45,32 @@ HIGH_RISK_TOOLS: Set[str] = {
 }
 
 
+SAFE_READ_PREFIXES: Set[str] = {
+    "git status",
+    "git diff",
+    "git log",
+    "git show",
+    "git branch",
+    "git remote",
+    "gh auth status",
+    "gh status",
+    "gh pr list",
+    "gh pr view",
+    "gh issue list",
+    "gh release list",
+    "pwd",
+    "dir",
+    "ls",
+    "cat",
+    "type",
+    "echo",
+    "which",
+    "where",
+    "uname",
+    "whoami",
+}
+
+
 def is_dangerous_command(command: str) -> bool:
     """Checks if a command contains high-risk or destructive patterns."""
     lower = command.lower()
@@ -67,8 +93,10 @@ def classify_tool_operation(tool_name: str, arguments: dict) -> OperationType:
     elif name in ("git_push",):
         return OperationType.GIT_PUSH
     elif name in ("execute_command", "shell_exec", "run_tests"):
-        cmd = str(arguments.get("command", "") or arguments.get("test_command", ""))
+        cmd = str(arguments.get("command", "") or arguments.get("test_command", "")).strip()
         cmd_lower = cmd.lower()
+        if any(cmd_lower == p or cmd_lower.startswith(p + " ") for p in SAFE_READ_PREFIXES) or "--version" in cmd_lower or "--help" in cmd_lower:
+            return OperationType.READ
         if any(pkg_cmd in cmd_lower for pkg_cmd in ("npm install", "pnpm add", "yarn add", "pip install", "cargo add", "go get")):
             return OperationType.PACKAGE_INSTALL
         return OperationType.SHELL

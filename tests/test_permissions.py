@@ -23,6 +23,10 @@ def test_operation_classification():
     assert classify_tool_operation("edit_file", {"path": "main.py"}) == OperationType.EDIT
     assert classify_tool_operation("delete_file", {"path": "main.py"}) == OperationType.DELETE
     assert classify_tool_operation("git_push", {}) == OperationType.GIT_PUSH
+    assert classify_tool_operation("execute_command", {"command": "gh auth status"}) == OperationType.READ
+    assert classify_tool_operation("execute_command", {"command": "git status"}) == OperationType.READ
+    assert classify_tool_operation("execute_command", {"command": "python --version"}) == OperationType.READ
+    assert classify_tool_operation("execute_command", {"command": "npm run build"}) == OperationType.SHELL
 
 
 def test_permission_manager_auto_mode():

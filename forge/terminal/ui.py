@@ -12,9 +12,10 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
+from rich.status import Status
 
 from forge.agent.runtime import AgentRuntime
-from forge.agent.state import AgentEvent
+from forge.agent.state import AgentEvent, AgentState
 from forge.config.loader import get_forge_dir, save_config, load_config
 from forge.config.schema import ForgeConfig
 from forge.llm import get_provider
@@ -56,28 +57,6 @@ SLASH_COMMANDS = [
 ]
 
 
-async def interactive_approval_callback(tool_name: str, arguments: dict, warning: Optional[str] = None) -> bool:
-    """Prompts the user interactively before dangerous or modifying actions."""
-    console.print()
-    if warning:
-        console.print(f"[{COLOR_WARNING}]⚠ {warning}[/]")
-
-    cmd_desc = arguments.get("command") or arguments.get("path") or arguments.get("message") or ""
-    console.print(f"[{COLOR_ORANGE}]Kairos wants to run:[/] [bold white]{tool_name}[/] [dim]{cmd_desc}[/dim]")
-
-    choice = Prompt.ask(
-        "Allow execution?",
-        choices=["y", "n", "a"],
-        default="n",
-    )
-
-    if choice == "y":
-        return True
-    elif choice == "a":
-        return True
-    return False
-
-
 class TerminalUI:
     """Interactive command shell for the Kairos AI Engineer."""
 
@@ -85,6 +64,7 @@ class TerminalUI:
         self.config = config
         self.workspace = workspace or str(Path.cwd())
         self.session_manager = SessionManager(workspace=self.workspace, session_id=session_id)
+        self._spinner: Optional[Status] = None
 
         # Setup prompt toolkit history & styling
         history_path = get_forge_dir() / "history"
@@ -103,16 +83,79 @@ class TerminalUI:
             max_iterations=self.config.max_iterations,
             event_callback=self._handle_event,
         )
-        self.runtime.permissions.approval_callback = interactive_approval_callback
+        self.runtime.permissions.approval_callback = self._interactive_approval
+
+    def _start_spinner(self, message: str = "Kairos is thinking...") -> None:
+        """Starts or updates the mascot thinking spinner."""
+        if self._spinner is None:
+            self._spinner = console.status(
+                f"[{COLOR_ORANGE}]{message}[/]",
+                spinner="kairos_robot",
+                spinner_style=f"bold {COLOR_ORANGE}",
+            )
+            self._spinner.start()
+        else:
+            self._spinner.update(status=f"[{COLOR_ORANGE}]{message}[/]")
+
+    def _stop_spinner(self) -> None:
+        """Safely stops the active thinking spinner."""
+        if self._spinner is not None:
+            try:
+                self._spinner.stop()
+            except Exception:
+                pass
+            self._spinner = None
+
+    async def _interactive_approval(self, tool_name: str, arguments: dict, warning: Optional[str] = None) -> bool:
+        """Prompts the user interactively before dangerous or modifying actions without spinner interference."""
+        self._stop_spinner()
+
+        console.print()
+        if warning:
+            console.print(f"[{COLOR_WARNING}]⚠ {warning}[/]")
+
+        cmd_desc = arguments.get("command") or arguments.get("path") or arguments.get("message") or ""
+        console.print(f"[{COLOR_ORANGE}]Kairos wants to run:[/] [bold white]{tool_name}[/] [dim]{cmd_desc}[/dim]")
+
+        choice = await asyncio.to_thread(
+            Prompt.ask,
+            "Allow execution? [y=yes, n=no, a=always allow / auto mode]",
+            choices=["y", "n", "a"],
+            default="n",
+        )
+
+        if choice == "a":
+            self.config.auto_mode = True
+            self.runtime.auto_mode = True
+            self.runtime.permissions.set_auto_mode(True)
+            render_success("Auto mode enabled for this session. Modifying actions will run automatically.")
+            return True
+        elif choice == "y":
+            return True
+        return False
 
     async def _handle_event(self, event: AgentEvent) -> None:
-        """Handles agent lifecycle events for terminal output."""
-        if event.type == "tool_start":
+        """Handles agent lifecycle events for terminal output and spinner states."""
+        if event.type == "state_changed":
+            state = event.data
+            if state == AgentState.THINKING:
+                self._start_spinner("Kairos is thinking...")
+            elif state in (AgentState.EXECUTING, AgentState.COMPLETED, AgentState.FAILED):
+                self._stop_spinner()
+
+        elif event.type == "tool_start":
+            self._stop_spinner()
             data = event.data
             render_tool_start(data["name"], data["arguments"])
+            self._start_spinner(f"Running {data['name']}...")
+
         elif event.type == "tool_end":
+            self._stop_spinner()
             res = event.data
             render_tool_result(res.tool_name, res.output, res.success, res.duration_ms)
+
+        elif event.type == "done":
+            self._stop_spinner()
 
     async def start(self) -> None:
         """Starts the interactive session loop."""
@@ -147,6 +190,20 @@ class TerminalUI:
                 if not user_input:
                     continue
 
+                # Direct shell execution bypass: !command or $command
+                if user_input.startswith("!") or user_input.startswith("$"):
+                    shell_cmd = user_input[1:].strip()
+                    if shell_cmd:
+                        console.print(f"[dim]Running shell command:[/] [white]{shell_cmd}[/]")
+                        await asyncio.to_thread(os.system, shell_cmd)
+                    continue
+
+                # Direct interactive CLI commands passthrough
+                if user_input.strip() in ("gh auth login", "gh auth logout", "gh auth refresh"):
+                    console.print(f"[dim]Running interactive authentication in terminal:[/] [bold {COLOR_ORANGE}]{user_input.strip()}[/]")
+                    await asyncio.to_thread(os.system, user_input.strip())
+                    continue
+
                 # Handle slash commands
                 if user_input.startswith("/"):
                     handled = await self._handle_slash_command(user_input)
@@ -154,9 +211,12 @@ class TerminalUI:
                         break
                     continue
 
-                # Run Agent task
-                with live_spinner("Kairos is working..."):
+                # Run Agent task with dynamic event-driven spinner
+                try:
+                    self._start_spinner("Kairos is thinking...")
                     response = await self.runtime.run(user_input)
+                finally:
+                    self._stop_spinner()
 
                 # Persist session
                 self.session_manager.save(self.runtime.messages)
@@ -167,9 +227,11 @@ class TerminalUI:
                 console.print()
 
             except (KeyboardInterrupt, EOFError):
+                self._stop_spinner()
                 console.print(f"\n[{COLOR_MUTED}]Session saved. Exiting Kairos.[/]")
                 break
             except Exception as e:
+                self._stop_spinner()
                 render_error(str(e))
 
     async def _handle_slash_command(self, cmd: str) -> Optional[str]:
@@ -210,11 +272,16 @@ class TerminalUI:
             render_diff(diff_text)
 
         elif command == "/github":
+            if arg in ("login", "auth"):
+                console.print(f"[dim]Launching interactive GitHub login in terminal...[/]")
+                await asyncio.to_thread(os.system, "gh auth login")
+                return None
             gh = await gh_status()
             if gh.get("connected"):
                 render_success(f"Connected as {gh.get('username')} (repo: {gh.get('repo')})")
             else:
                 render_error(f"GitHub disconnected ({gh.get('error', 'not authenticated')})")
+                console.print(f"[dim]Run [bold white]/github login[/] or [bold white]!gh auth login[/] to authenticate.[/]")
 
         elif command == "/compact":
             self.config.compact_mode = not self.config.compact_mode

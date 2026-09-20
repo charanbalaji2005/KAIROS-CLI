@@ -30,6 +30,20 @@ async def execute_command(
             "timed_out": False,
         }
 
+    # Detect interactive commands that require a direct terminal TTY
+    cmd_lower = command.lower().strip()
+    interactive_patterns = ("gh auth login", "gh auth refresh", "nano", "vim", "vi ", "top", "htop", "less ", "more ")
+    if any(p in cmd_lower for p in interactive_patterns):
+        return {
+            "exit_code": 1,
+            "output": (
+                f"'{command}' requires an interactive terminal TTY. "
+                "It cannot run non-interactively in a background subshell.\n"
+                f"Please run it directly in your shell or type '!{command}' inside Kairos."
+            ),
+            "timed_out": False,
+        }
+
     # Use shell appropriate for platform
     is_win = sys.platform == "win32"
     shell_cmd = command
