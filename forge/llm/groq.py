@@ -1,7 +1,9 @@
 """Groq API provider adapter for ultra-fast Llama, Qwen, and OpenAI-OSS models."""
 
+import asyncio
 import json
 import os
+import re
 from typing import Any, Dict, List, Optional
 import httpx
 
@@ -138,9 +140,25 @@ class GroqProvider(LLMProvider):
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(self.endpoint, headers=headers, json=payload)
-                if resp.status_code != 200:
-                    return LLMResponse(content=f"Groq API Error ({resp.status_code}): {resp.text}")
+                resp = None
+                for attempt in range(2):
+                    resp = await client.post(self.endpoint, headers=headers, json=payload)
+                    if resp.status_code == 429 and attempt == 0:
+                        try:
+                            err_msg = resp.json().get("error", {}).get("message", "")
+                            m = re.search(r"try again in ([0-9.]+)", err_msg)
+                            wait_sec = float(m.group(1)) if m else 3.0
+                            if wait_sec <= 8.0:
+                                await asyncio.sleep(wait_sec + 0.5)
+                                continue
+                        except Exception:
+                            pass
+                    break
+
+                if resp is None or resp.status_code != 200:
+                    status = resp.status_code if resp else "unknown"
+                    text = resp.text if resp else "No response"
+                    return LLMResponse(content=f"Groq API Error ({status}): {text}")
 
                 data = resp.json()
                 choices = data.get("choices", [])
