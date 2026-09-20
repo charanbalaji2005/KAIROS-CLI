@@ -1,0 +1,266 @@
+<p align="center">
+  <img src="assets/mascot.png" alt="Forge Mascot" width="180" />
+</p>
+
+# ⟦>_⟧ FORGE AGENT
+
+**Autonomous Terminal Engineer (Python Core)**
+
+Forge is an AI-powered terminal coding agent — capable of understanding repositories, editing code, running tests, committing, and pushing to GitHub autonomously.
+
+```
+      ⟦>_⟧  FORGE AGENT v0.1.0
+            Autonomous Terminal Engineer
+
+            Model: qwen-coder (Qwen2.5-Coder 3B)
+            Workspace: ~/projects/my-app
+            Branch: feature/new-auth
+            GitHub: ● connected as charanbalaji2005
+
+ ──────────────────────────────────────────────────────────
+
+ forge > build the authentication system and push to GitHub
+```
+
+---
+
+## Features
+
+- **Full terminal UI** — orange-on-black Forge aesthetic, compact header with live mascot
+- **Autonomous agent** — plans, reads, edits, tests, commits, pushes
+- **Multi-model support** — Qwen Coder 3B (default), DeepSeek-Coder 1.3B, Claude, GPT, Gemini
+- **GitHub CLI integration** — push, PR, CI status via `gh` (no token stored)
+- **Slash commands** — `/help /clear /git /github /diff /model /doctor /exit`
+- **Approval dialogs** — dangerous ops require `[Y]/[N]` confirmation
+- **Auto mode** — skip confirmations for fully autonomous workflows
+- **History navigation** — ↑/↓ arrows through command history
+- **Tab autocomplete** — slash command picker
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+```bash
+# Python 3.10+
+python --version
+
+# Install dependencies
+pip install -r requirements.txt
+
+# (Optional) Install Ollama for local AI
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5-coder:3b
+
+# (Optional) Install GitHub CLI for PRs and CI checks
+gh auth login
+```
+
+### Run
+
+```bash
+git clone https://github.com/charanbalaji2005/forge-agent
+cd forge-agent
+pip install -r requirements.txt
+
+# Start Forge
+python forge.py
+```
+
+Or install CLI to your environment:
+
+```bash
+pip install -e .
+forge
+```
+
+---
+
+## Models
+
+| Model | Params | Best For | Backend |
+|-------|--------|----------|---------|
+| `qwen-coder` | 3B | Code generation, editing | Ollama |
+| `qwen-chat` | 3B | General reasoning | Ollama |
+| `qwen-think` | 3B | Step-by-step planning | Ollama |
+| `deepseek-coder` | 1.3B | Lightweight code tasks | Ollama |
+| `phi3-mini` | 3.8B | General purpose | Ollama |
+| `claude-sonnet` | — | Cloud: best quality | Anthropic API |
+| `gpt-4o` | — | Cloud: OpenAI | OpenAI API |
+
+```bash
+# Install local model
+forge model install qwen-coder
+
+# Switch model
+forge model set deepseek-coder
+
+# List models
+forge model list
+```
+
+---
+
+## Commands
+
+| Command | Action |
+|---------|--------|
+| `forge` | Start interactive session |
+| `forge doctor` | Check environment |
+| `forge model list` | List available models |
+| `forge model install qwen-coder` | Install local model |
+| `forge status` | Show current status |
+| `forge config` | View configuration |
+| `forge config model qwen-coder` | Set config value |
+
+### In-session slash commands
+
+```
+/help         Show all commands
+/clear        Clear conversation
+/git          Git status summary
+/github       GitHub connection status
+/diff         Show current diff
+/model        Current/available models
+/doctor       Environment check
+/compact      Toggle compact header
+/permissions  Show permission settings
+/exit         Exit Forge
+```
+
+---
+
+## Usage Examples
+
+```
+forge > build a REST API for user authentication with JWT
+
+forge > add tests for the auth module
+
+forge > commit these changes with a descriptive message and push
+
+forge > create a pull request with the changes
+
+forge > what's the current CI status?
+
+forge > read src/auth/login.ts and optimize the query
+```
+
+---
+
+## Configuration
+
+Config is stored at `~/.forge/config.json`:
+
+```json
+{
+  "model": "qwen-coder",
+  "provider": "ollama",
+  "auto_mode": false,
+  "ollama_url": "http://localhost:11434",
+  "max_tokens": 4096,
+  "temperature": 0.1
+}
+```
+
+Set via CLI:
+
+```bash
+forge config model qwen-coder
+forge config provider anthropic
+forge config auto_mode true
+```
+
+Or set API keys for cloud models:
+
+```bash
+forge config anthropic_api_key sk-ant-...
+forge config openai_api_key sk-...
+```
+
+---
+
+## Architecture
+
+```
+forge/
+src/
+  main.rs              CLI entry point + argument parsing
+
+  config/              Configuration management
+    mod.rs
+
+  cli/                 Non-interactive commands
+    commands.rs        doctor, model, status, version, config
+
+  ui/                  Terminal UI (Ratatui)
+    app.rs             Main TUI loop, event handling, rendering
+    theme.rs           Color constants (orange/black palette)
+    mascot.rs          ⟦>_⟧ ASCII mascot component
+    widgets.rs         Reusable widget helpers
+
+  agent/               AI agent runtime
+    runtime.rs         Main agent loop, LLM ↔ tools bridge
+    state.rs           AgentState enum, events, message types
+    planner.rs         Plan formatting utilities
+
+  llm/                 LLM provider abstraction
+    provider.rs        Trait + factory function
+    ollama.rs          Ollama (local Qwen/Llama/Phi)
+    anthropic.rs       Anthropic Claude API
+    openai.rs          OpenAI GPT API
+
+  tools/               Tool implementations
+    mod.rs             ToolRegistry (filesystem, shell, git, github)
+
+  github/              GitHub CLI integration
+    mod.rs             GitHubClient — wraps `gh` CLI commands
+
+  security/            Permission system
+    mod.rs             Approval logic, dangerous command detection
+
+  memory/              Session state
+    mod.rs             SessionMemory
+
+  indexer/             Repository scanner
+    mod.rs             File tree indexing
+```
+
+---
+
+## Permission Model
+
+| Operation | Requires Approval | Auto Mode |
+|-----------|------------------|-----------|
+| Read files | Never | Never |
+| Write files | Never | Never |
+| Shell exec | Never | Never |
+| Git commit | Never | Never |
+| **git push** | **Yes** | Skip |
+| **GitHub PR** | **Yes** | Skip |
+| **Delete files** | **Yes** | Skip |
+
+Enable auto mode: `forge --auto` or `forge config auto_mode true`
+
+---
+
+## Installation Scripts
+
+### Linux / macOS
+
+```bash
+curl -fsSL https://get.forge.dev/install.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+irm https://get.forge.dev/install.ps1 | iex
+```
+
+---
+
+## License
+
+MIT — Forge Agent by Charan Balaji
