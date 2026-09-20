@@ -83,3 +83,22 @@ def test_session_persistence():
         assert loaded["session_id"] == sess_id
         assert loaded["workspace"] == tmpdir
         assert loaded["messages"] == msgs
+
+
+def test_tool_call_session_persistence():
+    from forge.llm.base import ToolCall
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sess_id = "test_tool_sess_456"
+        tc = ToolCall(id="call_99", name="list_files", arguments={"path": "."})
+        msgs = [
+            {"role": "user", "content": "what is the folder name"},
+            {"role": "assistant", "content": "", "tool_calls": [tc.to_dict()]},
+            {"role": "tool", "tool_call_id": "call_99", "name": "list_files", "content": "file1\nfile2"},
+        ]
+        sess_file = save_session(sess_id, tmpdir, msgs)
+        assert sess_file.exists()
+
+        loaded = load_session(sess_id)
+        assert loaded is not None
+        assert len(loaded["messages"]) == 3
+        assert loaded["messages"][1]["tool_calls"][0]["name"] == "list_files"

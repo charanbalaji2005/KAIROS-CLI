@@ -47,17 +47,31 @@ class OpenAIProvider(LLMProvider):
             if "tool_calls" in msg and msg["tool_calls"]:
                 serialized_calls = []
                 for tc in msg["tool_calls"]:
-                    if hasattr(tc, "id"):
-                        serialized_calls.append({
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.name,
-                                "arguments": json.dumps(tc.arguments),
-                            },
-                        })
+                    if hasattr(tc, "id") and hasattr(tc, "name"):
+                        call_id = tc.id
+                        name = tc.name
+                        args = tc.arguments
+                    elif isinstance(tc, dict):
+                        call_id = tc.get("id", "")
+                        fn = tc.get("function")
+                        if isinstance(fn, dict):
+                            name = fn.get("name", "")
+                            args = fn.get("arguments", "{}")
+                        else:
+                            name = tc.get("name", "")
+                            args = tc.get("arguments", {})
                     else:
-                        serialized_calls.append(tc)
+                        continue
+
+                    args_str = json.dumps(args) if isinstance(args, dict) else str(args)
+                    serialized_calls.append({
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": name,
+                            "arguments": args_str,
+                        },
+                    })
                 msg["tool_calls"] = serialized_calls
             openai_messages.append(msg)
 

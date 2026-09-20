@@ -15,6 +15,15 @@ def get_sessions_dir() -> Path:
     return sess_dir
 
 
+def _json_serializable(obj: Any) -> Any:
+    """Fallback serializer for objects like ToolCall or custom dataclasses."""
+    if hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    if hasattr(obj, "__dict__"):
+        return obj.__dict__
+    return str(obj)
+
+
 def save_session(
     session_id: str,
     workspace: str,
@@ -34,7 +43,7 @@ def save_session(
     }
 
     with open(sess_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, default=_json_serializable)
 
     return sess_file
 

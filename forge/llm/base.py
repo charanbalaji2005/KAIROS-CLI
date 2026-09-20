@@ -14,6 +14,19 @@ class ToolCall:
     name: str
     arguments: Dict[str, Any]
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts ToolCall to a clean JSON-serializable dictionary."""
+        return {
+            "id": self.id,
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "arguments": json.dumps(self.arguments) if isinstance(self.arguments, dict) else str(self.arguments),
+            },
+            "name": self.name,
+            "arguments": self.arguments,
+        }
+
     @classmethod
     def create(cls, name: str, arguments: Dict[str, Any], call_id: Optional[str] = None) -> "ToolCall":
         return cls(

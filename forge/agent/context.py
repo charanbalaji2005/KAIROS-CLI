@@ -1,5 +1,6 @@
 """Context manager: builds dynamic system prompt, workspace awareness, and message history."""
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from forge.agent.compaction import ContextCompactor
@@ -28,6 +29,9 @@ class ContextManager:
 
     async def build_system_prompt(self) -> str:
         """Assembles the full system instructions for the LLM."""
+        ws_path = Path(self.workspace).resolve()
+        folder_name = ws_path.name
+
         info = RepositoryDetector.detect(self.workspace)
         g_stat = await git_status(self.workspace)
         branch = g_stat.get("branch", "unknown") if "error" not in g_stat else "unknown"
@@ -36,21 +40,50 @@ class ContextManager:
         pkg_str = ", ".join(info.package_managers) if info.package_managers else "None"
         fw_str = ", ".join(info.frameworks) if info.frameworks else "None"
 
-        prompt = f"""You are Kairos, an elite autonomous terminal coding agent (Claude-Code style).
-You are working directly in repository workspace: {self.workspace}
-Git branch: {branch}
-Languages: {lang_str}
-Package Managers: {pkg_str}
-Frameworks: {fw_str}
-Test Runner: {info.test_runner or 'pytest / npm test / cargo test'}
+        # Auto-detect top-level repository files & directories
+        try:
+            top_items = []
+            for item in sorted(ws_path.iterdir()):
+                if item.name.startswith(".") or item.name == "__pycache__":
+                    continue
+                if item.is_dir():
+                    top_items.append(f"{item.name}/")
+                else:
+                    top_items.append(item.name)
+            top_structure = ", ".join(top_items[:30])
+        except Exception:
+            top_structure = "Available"
 
-### Core Operating Principles:
-1. **Understand First**: Always read relevant files using `read_file` or search the repository before modifying code.
-2. **Precision Editing**: Prefer `edit_file` with exact `old_text` and `new_text` for targeted changes, or `apply_patch` for diffs. Use `write_file` when creating new files.
-3. **Verify and Test**: After making changes, ALWAYS execute tests or run checks (`run_tests` or `execute_command`) to confirm that your modifications work and didn't break existing functionality.
-4. **Autonomous Test/Fix Loop**: If a test or build fails, read the error message carefully, locate the bug, edit the code, and re-run tests until they pass.
-5. **Clean Version Control**: Use `git_status` and `git_diff` to review your modifications before making git commits.
-6. **Be Direct & Concise**: Explain what you are doing in concise, technical language. Do not output unnecessary filler.
+        prompt = f"""You are Kairos, an elite autonomous terminal coding agent (Claude-Code style).
+You are working directly in repository workspace:
+- Folder Name: {folder_name}
+- Workspace Path: {ws_path}
+- Git Branch: {branch}
+- Languages: {lang_str}
+- Package Managers: {pkg_str}
+- Frameworks: {fw_str}
+- Test Runner: {info.test_runner or 'pytest / npm test / cargo test'}
+- Top-Level Contents: {top_structure}
+
+### Your Core Capabilities:
+1. **Explain Code**: When asked to explain code or project architecture, read relevant files with `read_file`, trace call graphs, and provide clear, structured technical explanations with diagrams or code snippets where helpful.
+2. **Debug & Fix**: When diagnosing bugs or errors:
+   - Identify the affected files and read them using `read_file`.
+   - Search for definitions, imports, and usages using `search`.
+   - Pinpoint the exact root cause.
+   - Use `edit_file` to apply the fix with surgical precision.
+   - Run tests (`run_tests` or `execute_command`) to confirm the bug is resolved.
+3. **Improve & Refactor Code**: When optimizing, modernizing, or refactoring:
+   - Understand the existing code completely before touching it.
+   - Improve code quality, error handling, performance, and type safety.
+   - Use `edit_file` for targeted modifications or `write_file` for new components.
+   - Re-run the test suite to ensure zero regressions.
+4. **Autonomous Operations**: You can freely read files (`read_file`), edit files (`edit_file`), search (`search`, `glob_files`, `list_files`), execute terminal commands (`execute_command`), run tests (`run_tests`), and manage git (`git_status`, `git_diff`, `git_commit`).
+
+### Operating Guidelines:
+- If asked about the current directory, folder name, or project path, state it directly from the auto-detected context above ({folder_name}).
+- Always verify code changes with tests whenever a test runner is available.
+- Keep explanations concise, direct, and actionable.
 
 Auto mode: {self.auto_mode}
 When auto mode is off, destructive operations (deleting files, git push, creating PRs) will ask the user for confirmation.

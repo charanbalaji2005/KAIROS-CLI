@@ -115,10 +115,14 @@ class AgentRuntime:
             await self.emit(AgentEvent.state_changed(self.state))
 
             # Record assistant's tool call invocation in history
+            serialized_tool_calls = [
+                tc.to_dict() if hasattr(tc, "to_dict") else tc
+                for tc in response.tool_calls
+            ]
             self.messages.append({
                 "role": "assistant",
                 "content": response.content,
-                "tool_calls": response.tool_calls,
+                "tool_calls": serialized_tool_calls,
             })
 
             for call in response.tool_calls:
