@@ -5,15 +5,40 @@ from typing import Generator
 from rich.console import Console
 from rich.status import Status
 
-from forge.terminal.renderer import COLOR_ORANGE, COLOR_ORANGE_DARK
+import rich._spinners
+from forge.terminal.renderer import COLOR_ORANGE, COLOR_ORANGE_DARK, COLOR_ORANGE_LIGHT
 
 console = Console()
+
+# Register custom Kairos robot spinner with blinking eyes, glancing, and giggling
+ROBOT_SPINNER_FRAMES = [
+    "(●) ⟦•_•⟧ ",
+    "(●) ⟦•_•⟧ ",
+    "(\\●)⟦•_ ⟧ ",
+    "(●/)⟦ _•⟧ ",
+    "(●) ⟦-_-⟧ ",
+    "(●) ⟦^_‐⟧ ",
+    "(*●)⟦>_<⟧* ",
+    "(●*)⟦^o^⟧~ ",
+    "(*●)⟦>_<⟧* ",
+    "(●) ⟦▮>_▮⟧ ",
+    "(●) ⟦▮>_▮⟧ ",
+]
+
+rich._spinners.SPINNERS["kairos_robot"] = {
+    "interval": 130,
+    "frames": ROBOT_SPINNER_FRAMES,
+}
 
 
 @contextmanager
 def live_spinner(description: str = "Thinking...") -> Generator[Status, None, None]:
-    """Displays an animated spinner with Forge orange styling."""
-    status = console.status(f"[{COLOR_ORANGE}]{description}[/]", spinner="dots", spinner_style=COLOR_ORANGE_DARK)
+    """Displays an animated spinner with Kairos robot mascot eye and giggling animations."""
+    status = console.status(
+        f"[{COLOR_ORANGE}]{description}[/]",
+        spinner="kairos_robot",
+        spinner_style=f"bold {COLOR_ORANGE}",
+    )
     status.start()
     try:
         yield status

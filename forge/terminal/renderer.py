@@ -32,18 +32,137 @@ COLOR_WARNING = "#F59E0B"
 COLOR_ERROR = "#EF4444"
 COLOR_INFO = "#60A5FA"
 
-MASCOT_ART = """
- •●●:.        .:●●• 
-:●●●●:        :●●●●:
-.●●●●:.:•●●•:.:●●●●.
- .●●●: •●●●●• :●●●. 
- ..:••●●●●●●●●••:.. 
-.::••••●●●●●●••••::.
- . .:  •●●●●•  :. . 
-    .  :●●●●:  .    
-      .●●●●●●.      
-       :••••:       
+# Robot Mascot Animation Frames (matching assets/mascot.png)
+MASCOT_SLEEP = """
+       ╭●╮      
+     ╭─┴─┴─╮    
+ ╭───┴─────┴───╮
+╭┤  ─   ..  ─ ├╮
+││    z Z z    ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+    ▟█ █ █ █▙   
 """.strip("\n")
+
+MASCOT_WAKE = """
+       ╭●╮      
+     ╭─┴─┴─╮    
+ ╭───┴─────┴───╮
+╭┤  •   ..  • ├╮
+││    •   •    ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+    ▟█ █ █ █▙   
+""".strip("\n")
+
+MASCOT_LOOK_LEFT = """
+     ╭●╯        
+    ╭─┴───╮     
+ ╭───┴─────┴───╮
+╭┤ ●    ..     ├╮
+││  ◖       ◖  ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+   ▟█ █ █ █▙    
+""".strip("\n")
+
+MASCOT_LOOK_RIGHT = """
+        ╰●╮     
+     ╭───┴─╮    
+ ╭───┴─────┴───╮
+╭┤     ..    ● ├╮
+││  ◗       ◗  ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+     ▟█ █ █ █▙  
+""".strip("\n")
+
+MASCOT_WINK = """
+       ╭●╮      
+     ╭─┴─┴─╮    
+ ╭───┴─────┴───╮
+╭┤  ^   >_  - ├╮
+││    ^   -    ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+    ▟█ █ █ █▙   
+""".strip("\n")
+
+MASCOT_GIGGLE_1 = """
+     * ╭●╯ *    
+    ╭─┴───╮     
+ ╭───┴─────┴───╮
+╭┤  >   ﹏  < ├╮
+││  ( giggle ) ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+   ▟█ █ █ █▙    
+""".strip("\n")
+
+MASCOT_GIGGLE_2 = """
+    *  ╰●╮  *   
+     ╭───┴─╮    
+ ╭───┴─────┴───╮
+╭┤  ^   ▽   ^ ├╮
+││   hehehe~   ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+     ▟█ █ █ █▙  
+""".strip("\n")
+
+MASCOT_IDLE = """
+       ╭●╮      
+     ╭─┴─┴─╮    
+ ╭───┴─────┴───╮
+╭┤  ▮   >_  ▮ ├╮
+││             ││
+╰┤  ╭───────╮  ├╯
+ ╰──┴───────┴──╯
+    ▟█ █ █ █▙   
+""".strip("\n")
+
+MASCOT_ART = MASCOT_IDLE
+
+
+def _build_banner_panel(
+    mascot_art: str,
+    workspace: str,
+    model: str,
+    branch: Optional[str] = None,
+    github_connected: bool = False,
+    github_user: Optional[str] = None,
+    mood_badge: Optional[str] = None,
+) -> Panel:
+    """Builds a rich panel with mascot and session details."""
+    gh_icon = (
+        f"[bold {COLOR_SUCCESS}]● connected[/] as {github_user}"
+        if github_connected
+        else f"[{COLOR_MUTED}]○ disconnected[/]"
+    )
+    badge = f" [bold {COLOR_ORANGE_LIGHT}]{mood_badge}[/]" if mood_badge else ""
+
+    grid = Table.grid(padding=(0, 2))
+    grid.add_column(justify="center")
+    grid.add_column(justify="left")
+
+    mascot_text = Text(mascot_art, style=COLOR_ORANGE)
+    info_lines = (
+        f"[bold {COLOR_ORANGE}]KAIROS AGENT v0.2.0[/]{badge}\n"
+        f"[dim]Autonomous Terminal Engineer (Python Core)[/]\n\n"
+        f"[{COLOR_MUTED}]Model:[/]     [{COLOR_ORANGE}]{model}[/]\n"
+        f"[{COLOR_MUTED}]Workspace:[/] [white]{workspace}[/]\n"
+        f"[{COLOR_MUTED}]Branch:[/]    [cyan]{branch or 'detached'}[/]\n"
+        f"[{COLOR_MUTED}]GitHub:[/]    {gh_icon}"
+    )
+
+    grid.add_row(mascot_text, info_lines)
+
+    return Panel(
+        grid,
+        border_style=COLOR_ORANGE_DARK,
+        title=f"[bold {COLOR_ORANGE}]⟦>_⟧ KAIROS[/]",
+        title_align="left",
+    )
 
 
 def render_banner(
@@ -53,8 +172,9 @@ def render_banner(
     github_connected: bool = False,
     github_user: Optional[str] = None,
     compact: bool = False,
+    animate: bool = True,
 ) -> None:
-    """Renders the Kairos startup header banner."""
+    """Renders the Kairos startup header banner with mascot animation."""
     if compact:
         gh_status = f"[green]● {github_user or 'connected'}[/green]" if github_connected else "[dim]○ offline[/dim]"
         console.print(
@@ -66,32 +186,62 @@ def render_banner(
         console.print(f"[{COLOR_ORANGE_DARK}]{'─' * 64}[/]")
         return
 
-    # Full header
-    gh_icon = f"[bold {COLOR_SUCCESS}]● connected[/] as {github_user}" if github_connected else f"[{COLOR_MUTED}]○ disconnected[/]"
+    # Check whether terminal can handle smooth animation
+    is_interactive = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+    should_animate = animate and is_interactive and not os.environ.get("PYTEST_CURRENT_TEST")
 
-    grid = Table.grid(padding=(0, 2))
-    grid.add_column(justify="center")
-    grid.add_column(justify="left")
+    if should_animate:
+        import time
+        from rich.live import Live
 
-    mascot_text = Text(MASCOT_ART, style=COLOR_ORANGE)
-    info_lines = (
-        f"[bold {COLOR_ORANGE}]KAIROS AGENT v0.2.0[/]\n"
-        f"[dim]Autonomous Terminal Engineer (Python Core)[/]\n\n"
-        f"[{COLOR_MUTED}]Model:[/]     [{COLOR_ORANGE}]{model}[/]\n"
-        f"[{COLOR_MUTED}]Workspace:[/] [white]{workspace}[/]\n"
-        f"[{COLOR_MUTED}]Branch:[/]    [cyan]{branch or 'detached'}[/]\n"
-        f"[{COLOR_MUTED}]GitHub:[/]    {gh_icon}"
-    )
+        animation_sequence = [
+            (MASCOT_SLEEP, "⟦ zZz ⟧", 0.12),
+            (MASCOT_WAKE, "⟦ •_• ⟧", 0.10),
+            (MASCOT_LOOK_LEFT, "⟦ •_  ⟧", 0.10),
+            (MASCOT_LOOK_RIGHT, "⟦  _• ⟧", 0.10),
+            (MASCOT_WINK, "⟦ ^_- ⟧", 0.10),
+            (MASCOT_GIGGLE_1, "⟦ >_< *giggle* ⟧", 0.11),
+            (MASCOT_GIGGLE_2, "⟦ ^o^ *hehehe* ⟧", 0.12),
+        ]
 
-    grid.add_row(mascot_text, info_lines)
+        try:
+            with Live(
+                _build_banner_panel(MASCOT_SLEEP, workspace, model, branch, github_connected, github_user, "⟦ zZz ⟧"),
+                console=console,
+                refresh_per_second=20,
+                transient=True,
+            ) as live:
+                for frame, mood, dur in animation_sequence:
+                    live.update(_build_banner_panel(frame, workspace, model, branch, github_connected, github_user, mood))
+                    time.sleep(dur)
+        except Exception:
+            pass
 
-    panel = Panel(
-        grid,
-        border_style=COLOR_ORANGE_DARK,
-        title=f"[bold {COLOR_ORANGE}]⟦>_⟧ KAIROS[/]",
-        title_align="left",
-    )
+    # Print final permanent banner
+    panel = _build_banner_panel(MASCOT_IDLE, workspace, model, branch, github_connected, github_user)
     console.print(panel)
+
+
+def render_mascot_giggle(message: str = "Hehehe! Task complete!") -> None:
+    """Plays a quick giggling animation for celebratory moments."""
+    is_interactive = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+    if is_interactive and not os.environ.get("PYTEST_CURRENT_TEST"):
+        import time
+        from rich.live import Live
+        frames = [
+            (MASCOT_GIGGLE_1, 0.10),
+            (MASCOT_GIGGLE_2, 0.12),
+            (MASCOT_GIGGLE_1, 0.10),
+            (MASCOT_IDLE, 0.05),
+        ]
+        try:
+            with Live(Text(MASCOT_GIGGLE_1, style=COLOR_ORANGE), console=console, transient=True) as live:
+                for f, dur in frames:
+                    live.update(Text(f, style=COLOR_ORANGE))
+                    time.sleep(dur)
+        except Exception:
+            pass
+    console.print(f"[{COLOR_ORANGE}]⟦>_<⟧[/] [bold {COLOR_ORANGE_LIGHT}]{message}[/]")
 
 
 def render_tool_start(tool_name: str, arguments: dict) -> None:

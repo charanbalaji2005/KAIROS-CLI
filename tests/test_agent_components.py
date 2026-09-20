@@ -102,3 +102,70 @@ def test_tool_call_session_persistence():
         assert loaded is not None
         assert len(loaded["messages"]) == 3
         assert loaded["messages"][1]["tool_calls"][0]["name"] == "list_files"
+
+
+def test_robot_mascot_frames_and_banner():
+    """Verify robot mascot frames and banner rendering without errors."""
+    from forge.terminal.renderer import (
+        MASCOT_ART,
+        MASCOT_SLEEP,
+        MASCOT_WAKE,
+        MASCOT_LOOK_LEFT,
+        MASCOT_LOOK_RIGHT,
+        MASCOT_WINK,
+        MASCOT_GIGGLE_1,
+        MASCOT_GIGGLE_2,
+        MASCOT_IDLE,
+        render_banner,
+        render_mascot_giggle,
+    )
+
+    frames = [
+        MASCOT_SLEEP,
+        MASCOT_WAKE,
+        MASCOT_LOOK_LEFT,
+        MASCOT_LOOK_RIGHT,
+        MASCOT_WINK,
+        MASCOT_GIGGLE_1,
+        MASCOT_GIGGLE_2,
+        MASCOT_IDLE,
+    ]
+
+    # Verify each frame has 8 lines and antenna
+    for f in frames:
+        lines = f.strip().splitlines()
+        assert len(lines) == 8
+        assert "●" in lines[0]  # Antenna ball
+        assert "▟█" in lines[-1]  # Robot feet
+
+    # Test banner rendering (compact and full)
+    render_banner(
+        workspace="/test/workspace",
+        model="groq:qwen/qwen3.8-27b",
+        branch="main",
+        github_connected=True,
+        github_user="testuser",
+        compact=False,
+        animate=False,
+    )
+    render_banner(
+        workspace="/test/workspace",
+        model="groq:qwen/qwen3.8-27b",
+        compact=True,
+    )
+    render_mascot_giggle("Test celebrate!")
+
+
+def test_kairos_robot_spinner():
+    """Verify kairos_robot spinner registration and context manager."""
+    import rich._spinners
+    from forge.terminal.streaming import live_spinner
+
+    assert "kairos_robot" in rich._spinners.SPINNERS
+    spinner_info = rich._spinners.SPINNERS["kairos_robot"]
+    assert "frames" in spinner_info
+    assert len(spinner_info["frames"]) >= 8
+
+    with live_spinner("Analyzing test code..."):
+        pass
+

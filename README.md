@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/mascot.png" alt="Kairos Mascot" width="180" />
+  <img src="assets/mascot.gif" alt="Kairos Mascot" width="220" />
 </p>
 
 # ⟦>_⟧ KAIROS AGENT
