@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -86,11 +87,12 @@ class TerminalUI:
         self.prompt_history = FileHistory(str(history_path))
         self.completer = WordCompleter(SLASH_COMMANDS, ignore_case=True)
         self.pt_style = Style.from_dict({
-            "prompt": "#F97316 bold",
-            "auto_on": "#F97316 bold",
-            "auto_off": "#A3A3A3",
-            "toolbar_dim": "#737373",
-            "placeholder": "#525252 italic",
+            "prompt": "#D97757 bold",
+            "auto_on": "#D97757 bold",
+            "auto_off": "#888888",
+            "toolbar_dim": "#666666",
+            "placeholder": "#555555 italic",
+            "divider": "#333333",
         })
 
         # Keybindings: Shift+Tab toggles auto mode / manual mode in real time
@@ -116,16 +118,20 @@ class TerminalUI:
         self.runtime.permissions.approval_callback = self._interactive_approval
 
     def _get_bottom_toolbar(self):
-        """Dynamic Claude Code bottom status toolbar."""
+        """Dynamic Claude Code bottom status toolbar matching screenshot."""
+        width = shutil.get_terminal_size((80, 24)).columns
+        div = "─" * width + "\n"
         if self.config.auto_mode:
             return [
+                ("class:divider", div),
                 ("class:auto_on", "▶▶ auto mode on "),
-                ("class:toolbar_dim", "(shift+tab to cycle) · /help for commands"),
+                ("class:toolbar_dim", "(shift+tab to cycle) · ← for agents"),
             ]
         else:
             return [
+                ("class:divider", div),
                 ("class:auto_off", "▷ manual mode "),
-                ("class:toolbar_dim", "(shift+tab to cycle) · /help for commands"),
+                ("class:toolbar_dim", "(shift+tab to cycle) · ← for agents"),
             ]
 
     def _start_spinner(self, message: str = "Kairos is thinking...") -> None:
@@ -226,7 +232,6 @@ class TerminalUI:
 
         while True:
             try:
-                render_status_bar(self.effort_level)
                 render_separator()
 
                 ph = PLACEHOLDERS[self.placeholder_idx % len(PLACEHOLDERS)]
@@ -237,8 +242,6 @@ class TerminalUI:
                 ]
                 user_input = await asyncio.to_thread(session.prompt, prompt_text, placeholder=ph)
                 user_input = user_input.strip()
-
-                render_separator()
 
                 if not user_input:
                     continue

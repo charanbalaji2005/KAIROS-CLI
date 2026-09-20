@@ -124,71 +124,73 @@ MASCOT_IDLE = """
 MASCOT_ART = MASCOT_IDLE
 
 
-# Compact 5-line Claude Code header frames
-MASCOT_COMPACT_SLEEP = """
-   ╭●╮   
- ╭─┴─┴─╮ 
-╭┤─ .. ─├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+# Exact Claude Code pixel mascot (matching reference screenshot)
+MASCOT_CLAUDE_IDLE = """
+ ▄█████▄ 
+ █ ███ █ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_WAKE = """
-   ╭●╮   
- ╭─┴─┴─╮ 
-╭┤• .. •├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_BLINK = """
+ ▄█████▄ 
+ █▀███▀█ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_LOOK_LEFT = """
- ╭●╯     
-╭─┴──╮   
-╭┤● .. ├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_LOOK_LEFT = """
+ ▄█████▄ 
+ █•███ █ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_LOOK_RIGHT = """
-     ╰●╮ 
-   ╭──┴─╮
-╭┤ .. ●├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_LOOK_RIGHT = """
+ ▄█████▄ 
+ █ ███•█ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_WINK = """
-   ╭●╮   
- ╭─┴─┴─╮ 
-╭┤^ >_ -├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_WINK = """
+ ▄█████▄ 
+ █^███-█ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_GIGGLE_1 = """
- * ╭●╯ * 
-╭──┴─╮   
-╭┤> ﹏ <├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_GIGGLE_1 = """
+ ▄█████▄ 
+ █>███<█ 
+█████████
+ ▀█████▀ 
+  ▀   ▀  
 """.strip("\n")
 
-MASCOT_COMPACT_GIGGLE_2 = """
- * ╰●╮ * 
-   ╭─┴──╮
-╭┤^ ▽ ^├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
+MASCOT_CLAUDE_GIGGLE_2 = """
+ ▄█████▄ 
+ █^███^█ 
+█████████
+ ▀█████▀ 
+  █   █  
 """.strip("\n")
 
-MASCOT_COMPACT_IDLE = """
-   ╭●╮   
- ╭─┴─┴─╮ 
-╭┤▮ >_ ▮├╮
- ╰─┬─┬─╯ 
-   ▟█▙   
-""".strip("\n")
+MASCOT_COMPACT_IDLE = MASCOT_CLAUDE_IDLE
+MASCOT_COMPACT_SLEEP = MASCOT_CLAUDE_BLINK
+MASCOT_COMPACT_WAKE = MASCOT_CLAUDE_IDLE
+MASCOT_COMPACT_LOOK_LEFT = MASCOT_CLAUDE_LOOK_LEFT
+MASCOT_COMPACT_LOOK_RIGHT = MASCOT_CLAUDE_LOOK_RIGHT
+MASCOT_COMPACT_WINK = MASCOT_CLAUDE_WINK
+MASCOT_COMPACT_GIGGLE_1 = MASCOT_CLAUDE_GIGGLE_1
+MASCOT_COMPACT_GIGGLE_2 = MASCOT_CLAUDE_GIGGLE_2
 
+COLOR_CLAUDE = "#D97757"  # Claude Code signature terracotta orange
 COLOR_SEPARATOR = "#333333"
 
 
@@ -207,12 +209,14 @@ def _build_claude_header(
     grid.add_column(justify="left")
 
     gh_suffix = f" · {github_user}" if (github_connected and github_user) else ""
-    badge = f" [bold {COLOR_ORANGE_LIGHT}]{mood_badge}[/]" if mood_badge else ""
+    clean_model = model.replace("groq:", "").replace("openai:", "")
+    if "context" not in clean_model:
+        clean_model = f"{clean_model} (128k context)"
 
-    mascot_text = Text(mascot_art, style=COLOR_ORANGE)
+    mascot_text = Text(mascot_art, style=COLOR_CLAUDE)
     info_lines = (
-        f"[bold white]Kairos Code[/] [dim]v0.2.0[/]{badge}\n"
-        f"[dim]{model}{gh_suffix}[/]\n"
+        f"[bold white]Kairos Code[/] [dim]v0.2.0[/]\n"
+        f"[dim]{clean_model}{gh_suffix}[/]\n"
         f"[dim]{workspace}[/]"
     )
 
@@ -233,9 +237,7 @@ def render_banner(
     if compact:
         gh_status = f"[green]● {github_user or 'connected'}[/green]" if github_connected else "[dim]○ offline[/dim]"
         console.print(
-            f"[{COLOR_ORANGE}]⟦>_⟧ Kairos Code[/] [dim]v0.2.0[/] │ "
-            f"Model: [{COLOR_ORANGE}]{model}[/] │ "
-            f"GitHub: {gh_status}"
+            f"[{COLOR_CLAUDE}]Kairos Code[/] [dim]v0.2.0[/] · [{COLOR_CLAUDE}]{model}[/] · {gh_status}"
         )
         return
 
@@ -275,17 +277,17 @@ def render_banner(
     console.print()
 
 
-def render_separator(width: int = 78) -> None:
-    """Renders a subtle Claude Code horizontal rule divider."""
-    term_width = min(console.width or 80, width)
+def render_separator(width: Optional[int] = None) -> None:
+    """Renders Claude Code's horizontal rule divider across terminal width."""
+    term_width = width or (console.width or 80)
     console.print(f"[{COLOR_SEPARATOR}]{'─' * term_width}[/]")
 
 
-def render_status_bar(effort: str = "high", width: int = 78) -> None:
-    """Renders Claude Code's right-aligned status indicator above prompt."""
-    term_width = min(console.width or 80, width)
-    text = f"● {effort} · /effort"
-    pad = max(0, term_width - len(text) - 1)
+def render_status_bar(effort: str = "high", width: Optional[int] = None) -> None:
+    """Renders Claude Code's right-aligned '● high · /effort' status line."""
+    term_width = width or (console.width or 80)
+    text = f"● {effort}  ·  /effort"
+    pad = max(0, term_width - len(text) - 2)
     console.print(f"[dim]{' ' * pad}{text}[/]")
 
 
