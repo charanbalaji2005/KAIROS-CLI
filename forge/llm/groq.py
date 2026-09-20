@@ -138,22 +138,45 @@ class GroqProvider(LLMProvider):
                 payload["tools"] = formatted_tools
                 payload["tool_choice"] = "auto"
 
+        # Candidate models pool for automatic 429 rate limit fallback (All-in-One)
+        candidate_models = [self.model]
+        fallback_pool = [
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",
+        ]
+        for fb in fallback_pool:
+            if fb not in candidate_models:
+                candidate_models.append(fb)
+
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = None
-                for attempt in range(2):
-                    resp = await client.post(self.endpoint, headers=headers, json=payload)
-                    if resp.status_code == 429 and attempt == 0:
-                        try:
-                            err_msg = resp.json().get("error", {}).get("message", "")
-                            m = re.search(r"try again in ([0-9.]+)", err_msg)
-                            wait_sec = float(m.group(1)) if m else 3.0
-                            if wait_sec <= 8.0:
-                                await asyncio.sleep(wait_sec + 0.5)
-                                continue
-                        except Exception:
-                            pass
-                    break
+                for current_model in candidate_models:
+                    payload["model"] = current_model
+
+                    # Try current model (with 1 quick retry if wait_sec is small)
+                    for attempt in range(2):
+                        resp = await client.post(self.endpoint, headers=headers, json=payload)
+                        if resp.status_code == 429:
+                            if attempt == 0:
+                                try:
+                                    err_msg = resp.json().get("error", {}).get("message", "")
+                                    m = re.search(r"try again in ([0-9.]+)", err_msg)
+                                    wait_sec = float(m.group(1)) if m else 2.0
+                                    if wait_sec <= 2.5:
+                                        await asyncio.sleep(wait_sec + 0.3)
+                                        continue
+                                except Exception:
+                                    pass
+                            # Rate limit on current model; break out of attempt loop to try next model in pool
+                            break
+                        break
+
+                    if resp is not None and resp.status_code == 200:
+                        # Seamlessly updated active model if fallback occurred
+                        self.model = current_model
+                        break
 
                 if resp is None or resp.status_code != 200:
                     status = resp.status_code if resp else "unknown"

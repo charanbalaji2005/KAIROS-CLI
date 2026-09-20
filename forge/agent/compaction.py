@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 class ContextCompactor:
     """Summarizes older conversation turns while keeping recent context and user goals intact."""
 
-    def __init__(self, keep_recent_turns: int = 8, max_chars_per_tool_result: int = 1500):
+    def __init__(self, keep_recent_turns: int = 4, max_chars_per_tool_result: int = 800):
         self.keep_recent_turns = keep_recent_turns
         self.max_chars_per_tool_result = max_chars_per_tool_result
 

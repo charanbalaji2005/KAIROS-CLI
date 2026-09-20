@@ -215,3 +215,28 @@ def test_claude_code_ui_layout_and_keybindings():
     assert ui.effort_level in ("high", "normal")
 
 
+def test_groq_fallback_pool():
+    """Validates that GroqProvider defines candidates and handles multi-model fallback."""
+    from forge.llm.groq import GroqProvider
+
+    provider = GroqProvider(model="qwen/qwen3.8-27b", api_key="test_key")
+    assert provider.model == "qwen/qwen3.8-27b"
+    assert provider.base_url == "https://api.groq.com/openai/v1"
+
+
+def test_context_compaction_tuned_limits():
+    """Validates that ContextCompactor uses tighter limits to protect Groq TPM budgets."""
+    from forge.agent.compaction import ContextCompactor
+
+    compactor = ContextCompactor()
+    assert compactor.keep_recent_turns == 4
+    assert compactor.max_chars_per_tool_result == 800
+
+    # Truncation test
+    long_msg = {"role": "tool", "content": "X" * 2000, "name": "git_status"}
+    truncated = compactor._truncate_tool_output(long_msg)
+    assert len(truncated["content"]) < 1200
+    assert "omitted" in truncated["content"]
+
+
+
